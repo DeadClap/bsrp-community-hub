@@ -1,13 +1,26 @@
 {
   "name": "bsrp-community-hub",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "Modular FiveM community management platform foundation",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node test/app.test.js",
+    "db:init": "node src/scripts/init-db.js"
   },
-  "keywords": [],
+  "keywords": [
+    "fivem",
+    "discord",
+    "rbac",
+    "community-management"
+  ],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "pg": "^8.16.3"
+  },
   "packageManager": "pnpm@10.22.0"
 }

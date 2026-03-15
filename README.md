@@ -1,0 +1,134 @@
+# BSRP Community Hub
+
+Backend foundation for a modular FiveM community management platform. This starter focuses on Phase 1: Discord-backed access control, platform-managed RBAC, staff access workflows, FiveM identity linking, whitelist checks, event ingestion, and audit history.
+
+## What is included
+
+- Native Node.js HTTP API with clear module seams for `auth`, `rbac`, `community`, `integrations`, `operations`, and `audit`
+- Shared policy evaluator for permission checks across modules
+- Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
+- Discord OAuth-ready config surface with startup validation
+- Postgres schema bootstrap script for local testing
+- Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, and FiveM event idempotency
+
+## Install
+
+```bash
+pnpm install
+```
+
+## Environment file
+
+Copy [`.env.example`](D:/Development/bsrp-community-hub/.env.example) to `.env` and edit the values for your machine. The app automatically loads `.env` for both `pnpm start` and `pnpm db:init`.
+
+## Run locally
+
+Memory mode with seed data:
+
+```bash
+pnpm start
+```
+
+Postgres mode:
+
+```bash
+# .env
+STORAGE_DRIVER=postgres
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/bsrp_community_hub
+SEED_ON_BOOT=true
+
+pnpm db:init
+pnpm start
+```
+
+Discord OAuth-ready mode:
+
+```bash
+# .env
+DISCORD_OAUTH_ENABLED=true
+DISCORD_CLIENT_ID=your_app_client_id
+DISCORD_CLIENT_SECRET=your_app_client_secret
+DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/discord/callback
+DISCORD_GUILD_ID=your_discord_guild_id
+DISCORD_BOT_TOKEN=your_bot_token
+DISCORD_OAUTH_SCOPES=identify guilds guilds.members.read
+```
+
+Server default:
+
+- `http://localhost:3000`
+
+## Environment variables
+
+- `PORT`: API port, default `3000`
+- `STORAGE_DRIVER`: `memory` or `postgres`, default `memory`
+- `DATABASE_URL`: required for Postgres mode
+- `SEED_ON_BOOT`: `true` or `false`, defaults to `true`
+- `DISCORD_OAUTH_ENABLED`: enables strict Discord OAuth config validation
+- `DISCORD_CLIENT_ID`: Discord application client ID
+- `DISCORD_CLIENT_SECRET`: Discord application client secret
+- `DISCORD_REDIRECT_URI`: OAuth callback URL registered in Discord
+- `DISCORD_GUILD_ID`: guild to authorize against
+- `DISCORD_BOT_TOKEN`: bot token for guild/member sync work
+- `DISCORD_OAUTH_SCOPES`: space- or comma-separated OAuth scopes
+
+## Useful endpoints
+
+- `GET /health`
+- `POST /api/auth/discord/login`
+- `POST /api/auth/link/fivem`
+- `GET /api/rbac/departments`
+- `POST /api/rbac/assignments`
+- `GET /api/community/access-requests`
+- `POST /api/community/access-requests`
+- `POST /api/community/access-requests/:requestId/decision`
+- `POST /api/integrations/discord/sync`
+- `POST /api/integrations/fivem/events`
+- `POST /api/integrations/fivem/whitelist-check`
+- `GET /api/operations/players/:playerId`
+- `GET /api/audit/events`
+
+## Example payloads
+
+Discord login:
+
+```json
+{
+  "discordId": "discord-chief",
+  "username": "chiefharper"
+}
+```
+
+Access request approval:
+
+```json
+{
+  "actorUserId": "user_1",
+  "decision": "approve",
+  "notes": "Approved for staff onboarding"
+}
+```
+
+FiveM event ingestion:
+
+```json
+{
+  "actorUserId": "user_1",
+  "eventKey": "evt-001",
+  "kind": "admin.action",
+  "serverId": "server_1",
+  "playerId": "player_2",
+  "action": "warned",
+  "metadata": {
+    "reason": "NVL"
+  }
+}
+```
+
+## Next build targets
+
+- Implement the real Discord OAuth authorization and callback flow
+- Replace JSON payload tables with typed relational schemas per domain
+- Add background jobs and outbound sync for Discord and FiveM operations
+- Introduce a frontend staff portal and operator dashboard
+- Expand shared entities for CAD, MDT, and dispatch modules
