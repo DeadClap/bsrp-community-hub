@@ -9,6 +9,7 @@ import { RbacService } from "../services/rbac.service.js";
 import { CommunityService } from "../services/community.service.js";
 import { OperationsService } from "../services/operations.service.js";
 import { IntegrationsService } from "../services/integrations.service.js";
+import { DiscordOAuthService } from "../services/discord-oauth.service.js";
 
 async function createStore({ config, initialState }) {
   if (config.storageDriver === "postgres") {
@@ -22,13 +23,17 @@ async function createStore({ config, initialState }) {
   return new MemoryStore(initialState);
 }
 
-export async function createPlatformContext({ initialState = {}, config } = {}) {
+export async function createPlatformContext({ initialState = {}, config, dependencies = {} } = {}) {
   const resolvedConfig = config ?? getConfig();
   const store = await createStore({ config: resolvedConfig, initialState });
   const permissionCatalog = new PermissionCatalog();
   const audit = new AuditService(store);
   const policy = new PolicyService(store);
-  const auth = new AuthService(store, audit, policy);
+  const discordOAuth = new DiscordOAuthService({
+    config: resolvedConfig,
+    fetchImpl: dependencies.fetch ?? globalThis.fetch,
+  });
+  const auth = new AuthService(store, audit, policy, discordOAuth, resolvedConfig);
   const rbac = new RbacService(store, audit, policy);
   const community = new CommunityService(store, audit, policy, rbac);
   const operations = new OperationsService(store, policy);
@@ -46,6 +51,7 @@ export async function createPlatformContext({ initialState = {}, config } = {}) 
       community,
       operations,
       integrations,
+      discordOAuth,
     },
     async close() {
       await store.close();

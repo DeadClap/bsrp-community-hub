@@ -9,8 +9,56 @@ import { getConfig, validateConfig } from "../src/platform/config.js";
 import { createSeedState } from "../src/seed.js";
 import { EVENT_KIND, MEMBERSHIP_STATUS } from "../src/shared/constants.js";
 
-async function createTestApp() {
-  return createApp({ initialState: createSeedState(), config: getConfig({ STORAGE_DRIVER: "memory" }) });
+function createDiscordFetchStub() {
+  return async (url, options = {}) => {
+    if (url === "https://discord.com/api/v10/oauth2/token") {
+      assert.equal(options.method, "POST");
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { access_token: "discord-access-token", token_type: "Bearer" };
+        },
+      };
+    }
+
+    if (url === "https://discord.com/api/v10/users/@me") {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { id: "discord-chief", username: "chiefharper-real" };
+        },
+      };
+    }
+
+    if (url === "https://discord.com/api/v10/guilds/guild-123/members/discord-chief") {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { user: { id: "discord-chief" }, roles: ["guild_member", "leo_command"] };
+        },
+      };
+    }
+
+    throw new Error(`Unexpected fetch URL: ${url}`);
+  };
+}
+
+async function createTestApp(options = {}) {
+  const config = validateConfig(
+    getConfig({
+      STORAGE_DRIVER: "memory",
+      ...options.env,
+    }),
+  );
+
+  return createApp({
+    initialState: createSeedState(),
+    config,
+    dependencies: options.dependencies,
+  });
 }
 
 test("env loader reads values without overwriting existing env", () => {
@@ -39,6 +87,68 @@ test("discord oauth validation requires the full credential set when enabled", (
       ),
     /Discord OAuth is enabled but missing:/,
   );
+});
+
+test("discord authorize returns a stateful authorization url", async () => {
+  const app = await createTestApp({
+    env: {
+      DISCORD_OAUTH_ENABLED: "true",
+      DISCORD_CLIENT_ID: "client-id",
+      DISCORD_CLIENT_SECRET: "client-secret",
+      DISCORD_REDIRECT_URI: "http://localhost:3000/api/auth/discord/callback",
+      DISCORD_GUILD_ID: "guild-123",
+      DISCORD_BOT_TOKEN: "bot-token",
+    },
+    dependencies: { fetch: createDiscordFetchStub() },
+  });
+
+  const response = await app.inject({
+    method: "GET",
+    path: "/api/auth/discord/authorize",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.ok(response.body.state);
+  assert.ok(response.body.authorizationUrl.includes("client_id=client-id"));
+  assert.ok(response.body.authorizationUrl.includes(encodeURIComponent(response.body.state)));
+
+  const snapshot = await app.context.store.snapshot();
+  assert.equal(snapshot.oauthStates.length, 1);
+  await app.close();
+});
+
+test("discord callback exchanges code and creates a session for a linked member", async () => {
+  const app = await createTestApp({
+    env: {
+      DISCORD_OAUTH_ENABLED: "true",
+      DISCORD_CLIENT_ID: "client-id",
+      DISCORD_CLIENT_SECRET: "client-secret",
+      DISCORD_REDIRECT_URI: "http://localhost:3000/api/auth/discord/callback",
+      DISCORD_GUILD_ID: "guild-123",
+      DISCORD_BOT_TOKEN: "bot-token",
+    },
+    dependencies: { fetch: createDiscordFetchStub() },
+  });
+
+  const authorize = await app.inject({
+    method: "GET",
+    path: "/api/auth/discord/authorize",
+  });
+
+  const callback = await app.inject({
+    method: "GET",
+    path: `/api/auth/discord/callback?code=oauth-code&state=${authorize.body.state}`,
+  });
+
+  assert.equal(callback.statusCode, 201);
+  assert.equal(callback.body.user.id, "user_1");
+  assert.equal(callback.body.session.status, "active");
+  assert.ok(callback.body.permissions.includes("rbac.manage"));
+
+  const snapshot = await app.context.store.snapshot();
+  const oauthState = snapshot.oauthStates.find((item) => item.id === authorize.body.state);
+  assert.equal(oauthState.status, "consumed");
+  await app.close();
 });
 
 test("discord login creates a session for a linked active user", async () => {

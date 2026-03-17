@@ -203,6 +203,7 @@ export function createSeedState() {
         createdAt: "2026-03-15T12:00:00.000Z",
       },
     ],
+    oauthStates: [],
     integrationMappings: [
       {
         id: "mapping_1",

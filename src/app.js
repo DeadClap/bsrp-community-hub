@@ -4,8 +4,8 @@ import { notFound, sendError } from "./platform/http.js";
 import { createRouter } from "./platform/router.js";
 import { registerRoutes } from "./routes.js";
 
-export async function createApp({ initialState, config } = {}) {
-  const context = await createPlatformContext({ initialState, config });
+export async function createApp({ initialState, config, dependencies } = {}) {
+  const context = await createPlatformContext({ initialState, config, dependencies });
   const router = createRouter();
 
   registerRoutes(router, context);

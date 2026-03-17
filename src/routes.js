@@ -15,6 +15,20 @@ export function registerRoutes(router, context) {
     json(response, { users: await context.services.community.listUsers() });
   });
 
+  router.get("/api/auth/discord/authorize", async (_request, response) => {
+    const result = await context.services.auth.startDiscordOAuth();
+    json(response, result);
+  });
+
+  router.get("/api/auth/discord/callback", async (request, response) => {
+    const url = new URL(request.url, "http://localhost");
+    const result = await context.services.auth.completeDiscordOAuth({
+      code: url.searchParams.get("code"),
+      state: url.searchParams.get("state"),
+    });
+    json(response, result, 201);
+  });
+
   router.post("/api/auth/discord/login", async (request, response) => {
     const body = await parseJsonBody(request);
     const result = await context.services.auth.loginWithDiscord(body);

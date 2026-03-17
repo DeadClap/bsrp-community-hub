@@ -7,6 +7,7 @@ Backend foundation for a modular FiveM community management platform. This start
 - Native Node.js HTTP API with clear module seams for `auth`, `rbac`, `community`, `integrations`, `operations`, and `audit`
 - Shared policy evaluator for permission checks across modules
 - Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
+- Real Discord OAuth authorization URL generation and callback exchange flow
 - Discord OAuth-ready config surface with startup validation
 - Postgres schema bootstrap script for local testing
 - Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, and FiveM event idempotency
@@ -41,7 +42,7 @@ pnpm db:init
 pnpm start
 ```
 
-Discord OAuth-ready mode:
+Discord OAuth mode:
 
 ```bash
 # .env
@@ -54,6 +55,11 @@ DISCORD_BOT_TOKEN=your_bot_token
 DISCORD_OAUTH_SCOPES=identify guilds guilds.members.read
 ```
 
+Then start the app and visit:
+
+- `GET /api/auth/discord/authorize`
+- complete the Discord flow against the configured callback `GET /api/auth/discord/callback`
+
 Server default:
 
 - `http://localhost:3000`
@@ -64,7 +70,7 @@ Server default:
 - `STORAGE_DRIVER`: `memory` or `postgres`, default `memory`
 - `DATABASE_URL`: required for Postgres mode
 - `SEED_ON_BOOT`: `true` or `false`, defaults to `true`
-- `DISCORD_OAUTH_ENABLED`: enables strict Discord OAuth config validation
+- `DISCORD_OAUTH_ENABLED`: enables the live Discord OAuth flow
 - `DISCORD_CLIENT_ID`: Discord application client ID
 - `DISCORD_CLIENT_SECRET`: Discord application client secret
 - `DISCORD_REDIRECT_URI`: OAuth callback URL registered in Discord
@@ -75,6 +81,8 @@ Server default:
 ## Useful endpoints
 
 - `GET /health`
+- `GET /api/auth/discord/authorize`
+- `GET /api/auth/discord/callback`
 - `POST /api/auth/discord/login`
 - `POST /api/auth/link/fivem`
 - `GET /api/rbac/departments`
@@ -127,7 +135,7 @@ FiveM event ingestion:
 
 ## Next build targets
 
-- Implement the real Discord OAuth authorization and callback flow
+- Add a frontend login button and session handoff flow for Discord OAuth
 - Replace JSON payload tables with typed relational schemas per domain
 - Add background jobs and outbound sync for Discord and FiveM operations
 - Introduce a frontend staff portal and operator dashboard

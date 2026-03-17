@@ -14,6 +14,7 @@ const COLLECTION_SPECS = {
   auditEvents: { table: "hub_audit_events", kind: "record" },
   accessRequests: { table: "hub_access_requests", kind: "record" },
   sessions: { table: "hub_sessions", kind: "record" },
+  oauthStates: { table: "hub_oauth_states", kind: "record" },
   integrationMappings: { table: "hub_integration_mappings", kind: "record" },
   processedEventKeys: { table: "hub_processed_event_keys", kind: "scalar" },
 };
