@@ -757,9 +757,17 @@ function getSpec(collection) {
   return spec;
 }
 
+function prepareColumnValue(spec, column, value) {
+  const columnSpec = spec.columns.find((entry) => entry.name === column);
+  if (columnSpec?.cast === "jsonb") {
+    return JSON.stringify(value ?? columnSpec.fallback ?? null);
+  }
+  return value;
+}
+
 function buildInsertStatement(spec, row) {
   const columnNames = Object.keys(row);
-  const values = columnNames.map((column) => row[column]);
+  const values = columnNames.map((column) => prepareColumnValue(spec, column, row[column]));
   const placeholders = columnNames.map((column, index) => {
     const columnSpec = spec.columns.find((entry) => entry.name === column);
     const cast = columnSpec?.cast;
@@ -782,7 +790,10 @@ function buildUpdateStatement(spec, row) {
 
   return {
     sql: `UPDATE ${spec.table} SET ${assignments.join(", ")} WHERE ${spec.idColumn} = $1`,
-    values: [row[spec.idColumn], ...entries.map(([, value]) => value)],
+    values: [
+      row[spec.idColumn],
+      ...entries.map(([column, value]) => prepareColumnValue(spec, column, value)),
+    ],
   };
 }
 
