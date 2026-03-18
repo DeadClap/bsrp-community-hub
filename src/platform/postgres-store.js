@@ -810,10 +810,31 @@ export class PostgresStore {
 
   async ensureSchema() {
     for (const spec of Object.values(COLLECTION_SPECS)) {
+      await this.ensureTableShape(spec);
       await this.pool.query(spec.createTable);
       for (const indexSql of spec.indexes) {
         await this.pool.query(indexSql);
       }
+    }
+  }
+
+  async ensureTableShape(spec) {
+    const result = await this.pool.query(
+      `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+      `,
+      [spec.table],
+    );
+
+    if (result.rows.length === 0) {
+      return;
+    }
+
+    const columns = new Set(result.rows.map((row) => row.column_name));
+    if (columns.has("payload") && columns.has("updated_at")) {
+      await this.pool.query(`DROP TABLE IF EXISTS ${spec.table} CASCADE`);
     }
   }
 
