@@ -9,7 +9,7 @@ import { getConfig, validateConfig } from "../src/platform/config.js";
 import { createSeedState } from "../src/seed.js";
 import { EVENT_KIND, MEMBERSHIP_STATUS } from "../src/shared/constants.js";
 
-function createDiscordFetchStub() {
+function createDiscordFetchStub({ userId = "discord-chief", username = "chiefharper-real", roles = ["guild_member", "leo_command"] } = {}) {
   return async (url, options = {}) => {
     if (url === "https://discord.com/api/v10/oauth2/token") {
       assert.equal(options.method, "POST");
@@ -27,17 +27,17 @@ function createDiscordFetchStub() {
         ok: true,
         status: 200,
         async json() {
-          return { id: "discord-chief", username: "chiefharper-real" };
+          return { id: userId, username, global_name: username };
         },
       };
     }
 
-    if (url === "https://discord.com/api/v10/guilds/guild-123/members/discord-chief") {
+    if (url === `https://discord.com/api/v10/guilds/guild-123/members/${userId}`) {
       return {
         ok: true,
         status: 200,
         async json() {
-          return { user: { id: "discord-chief" }, roles: ["guild_member", "leo_command"] };
+          return { user: { id: userId }, roles };
         },
       };
     }
@@ -142,12 +142,57 @@ test("discord callback exchanges code and creates a session for a linked member"
 
   assert.equal(callback.statusCode, 201);
   assert.equal(callback.body.user.id, "user_1");
+  assert.equal(callback.body.status, "active");
   assert.equal(callback.body.session.status, "active");
   assert.ok(callback.body.permissions.includes("rbac.manage"));
 
   const snapshot = await app.context.store.snapshot();
   const oauthState = snapshot.oauthStates.find((item) => item.id === authorize.body.state);
   assert.equal(oauthState.status, "consumed");
+  await app.close();
+});
+
+test("discord callback auto-provisions unknown members in pending state", async () => {
+  const app = await createTestApp({
+    env: {
+      DISCORD_OAUTH_ENABLED: "true",
+      DISCORD_CLIENT_ID: "client-id",
+      DISCORD_CLIENT_SECRET: "client-secret",
+      DISCORD_REDIRECT_URI: "http://localhost:3000/api/auth/discord/callback",
+      DISCORD_GUILD_ID: "guild-123",
+      DISCORD_BOT_TOKEN: "bot-token",
+    },
+    dependencies: {
+      fetch: createDiscordFetchStub({
+        userId: "discord-new-user",
+        username: "newmember",
+        roles: ["guild_member"],
+      }),
+    },
+  });
+
+  const authorize = await app.inject({ method: "GET", path: "/api/auth/discord/authorize" });
+  const callback = await app.inject({
+    method: "GET",
+    path: `/api/auth/discord/callback?code=oauth-code&state=${authorize.body.state}`,
+  });
+
+  assert.equal(callback.statusCode, 202);
+  assert.equal(callback.body.status, "pending");
+  assert.equal(callback.body.user.status, "pending");
+  assert.equal(callback.body.session ?? null, null);
+  assert.deepEqual(callback.body.permissions, []);
+
+  const snapshot = await app.context.store.snapshot();
+  const provisionedUser = snapshot.users.find((user) => user.displayName === "newmember");
+  const provisionedAccount = snapshot.connectedAccounts.find(
+    (account) => account.providerAccountId === "discord-new-user",
+  );
+
+  assert.ok(provisionedUser);
+  assert.ok(provisionedAccount);
+  assert.equal(provisionedUser.status, "pending");
+  assert.equal(provisionedAccount.userId, provisionedUser.id);
   await app.close();
 });
 
@@ -161,6 +206,7 @@ test("discord login creates a session for a linked active user", async () => {
 
   assert.equal(response.statusCode, 201);
   assert.equal(response.body.user.id, "user_1");
+  assert.equal(response.body.status, "active");
   assert.equal(response.body.session.status, "active");
   assert.ok(response.body.permissions.includes("rbac.manage"));
   await app.close();

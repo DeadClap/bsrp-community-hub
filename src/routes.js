@@ -26,13 +26,13 @@ export function registerRoutes(router, context) {
       code: url.searchParams.get("code"),
       state: url.searchParams.get("state"),
     });
-    json(response, result, 201);
+    json(response, result, result.status === "pending" ? 202 : 201);
   });
 
   router.post("/api/auth/discord/login", async (request, response) => {
     const body = await parseJsonBody(request);
     const result = await context.services.auth.loginWithDiscord(body);
-    json(response, result, 201);
+    json(response, result, result.status === "pending" ? 202 : 201);
   });
 
   router.post("/api/auth/link/fivem", async (request, response) => {

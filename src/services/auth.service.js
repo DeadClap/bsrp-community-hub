@@ -18,7 +18,20 @@ export class AuthService {
 
   async createSessionForDiscordAccount(account, metadata = {}) {
     const user = await this.store.get("users", account.userId);
-    if (!user || user.status !== "active") {
+    if (!user) {
+      notFound("User not found");
+    }
+
+    if (user.status === "pending") {
+      return {
+        status: "pending",
+        user,
+        permissions: [],
+        message: "Your account is pending staff approval.",
+      };
+    }
+
+    if (user.status !== "active") {
       forbidden("User is not active");
     }
 
@@ -42,10 +55,51 @@ export class AuthService {
     });
 
     return {
+      status: "active",
       session,
       user,
       permissions: await this.policy.permissionsForUser(user.id),
     };
+  }
+
+  async provisionPendingDiscordMember({ discordUser, guildMember }) {
+    const timestamp = now();
+    const user = {
+      id: `user_${(await this.store.list("users")).length + 1}`,
+      displayName: discordUser.global_name ?? discordUser.username,
+      email: discordUser.email ?? null,
+      status: "pending",
+      createdAt: timestamp,
+    };
+
+    await this.store.insert("users", user);
+
+    const account = {
+      id: `connected_${(await this.store.list("connectedAccounts")).length + 1}`,
+      userId: user.id,
+      provider: ACCOUNT_PROVIDER.DISCORD,
+      providerAccountId: discordUser.id,
+      username: discordUser.username,
+      guildMember: true,
+      roles: guildMember.roles ?? [],
+      lastSyncedAt: timestamp,
+      provisionedAt: timestamp,
+    };
+
+    await this.store.insert("connectedAccounts", account);
+
+    await this.audit.record({
+      action: "auth.discord_auto_provisioned",
+      actorUserId: user.id,
+      targetType: "user",
+      targetId: user.id,
+      metadata: {
+        discordUserId: discordUser.id,
+        roles: guildMember.roles ?? [],
+      },
+    });
+
+    return { user, account };
   }
 
   async loginWithDiscord(payload) {
@@ -117,23 +171,25 @@ export class AuthService {
     const discordUser = await this.discordOAuth.fetchCurrentUser(token.access_token);
     const guildMember = await this.discordOAuth.fetchGuildMember(discordUser.id);
 
-    const account = await this.store.find(
+    let account = await this.store.find(
       "connectedAccounts",
       (item) =>
         item.provider === ACCOUNT_PROVIDER.DISCORD && item.providerAccountId === discordUser.id,
     );
 
     if (!account) {
-      badRequest("Discord account is not linked to a member");
+      const provisioned = await this.provisionPendingDiscordMember({ discordUser, guildMember });
+      account = provisioned.account;
+    } else {
+      await this.store.replace("connectedAccounts", account.id, (existing) => ({
+        ...existing,
+        username: discordUser.username,
+        guildMember: true,
+        roles: guildMember.roles ?? [],
+        lastSyncedAt: now(),
+      }));
+      account = await this.store.get("connectedAccounts", account.id);
     }
-
-    await this.store.replace("connectedAccounts", account.id, (existing) => ({
-      ...existing,
-      username: discordUser.username,
-      guildMember: true,
-      roles: guildMember.roles ?? [],
-      lastSyncedAt: now(),
-    }));
 
     await this.store.replace("oauthStates", payload.state, (existing) => ({
       ...existing,
@@ -150,8 +206,19 @@ export class AuthService {
       metadata: { discordUserId: discordUser.id },
     });
 
-    const refreshedAccount = await this.store.get("connectedAccounts", account.id);
-    return this.createSessionForDiscordAccount(refreshedAccount, { authMethod: "oauth" });
+    const result = await this.createSessionForDiscordAccount(account, { authMethod: "oauth" });
+
+    if (result.status === "pending") {
+      await this.audit.record({
+        action: "auth.discord_pending_login",
+        actorUserId: account.userId,
+        targetType: "user",
+        targetId: account.userId,
+        metadata: { discordUserId: discordUser.id },
+      });
+    }
+
+    return result;
   }
 
   async linkFiveMIdentity(payload) {
