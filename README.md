@@ -7,10 +7,10 @@ Backend foundation for a modular FiveM community management platform. This start
 - Native Node.js HTTP API with clear module seams for `auth`, `rbac`, `community`, `integrations`, `operations`, and `audit`
 - Shared policy evaluator for permission checks across modules
 - Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
-- Typed relational Postgres tables with foreign keys, uniqueness constraints, and indexes for the current Phase 1 entities
 - Real Discord OAuth authorization URL generation and callback exchange flow
 - Discord OAuth-ready config surface with startup validation
-- Postgres schema bootstrap, seed, and reset scripts for local testing
+- Postgres schema bootstrap, seed, reset, and migration scripts for local testing
+- SQL-based schema migrations tracked in `schema_migrations`
 - Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, and FiveM event idempotency
 
 ## Install
@@ -21,7 +21,7 @@ pnpm install
 
 ## Environment file
 
-Copy [`.env.example`](D:/Development/bsrp-community-hub/.env.example) to `.env` and edit the values for your machine. The app automatically loads `.env` for `pnpm start`, `pnpm db:init`, `pnpm db:seed`, and `pnpm db:reset`.
+Copy [`.env.example`](D:/Development/bsrp-community-hub/.env.example) to `.env` and edit the values for your machine. The app automatically loads `.env` for `pnpm start`, `pnpm db:init`, `pnpm db:migrate`, `pnpm db:seed`, and `pnpm db:reset`.
 
 ## Run locally
 
@@ -39,7 +39,7 @@ STORAGE_DRIVER=postgres
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/bsrp_community_hub
 SEED_ON_BOOT=false
 
-pnpm db:init
+pnpm db:migrate
 pnpm db:seed
 pnpm start
 ```
@@ -151,7 +151,7 @@ FiveM event ingestion:
 ## Next build targets
 
 - Add a frontend login button and session handoff flow for Discord OAuth
-- Add relational migrations/versioning instead of schema-on-boot only
+- Add follow-up migrations instead of relying on a single baseline schema file
 - Add background jobs and outbound sync for Discord and FiveM operations
 - Introduce a frontend staff portal and operator dashboard
 - Expand shared entities for CAD, MDT, and dispatch modules
