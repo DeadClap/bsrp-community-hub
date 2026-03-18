@@ -68,10 +68,17 @@ export function createRouter() {
 
     await handle(request, response);
 
+    const contentType = response.headers["content-type"] ?? "";
+    const parsedBody = raw
+      ? contentType.includes("application/json")
+        ? JSON.parse(raw)
+        : raw
+      : null;
+
     return {
       statusCode: response.statusCode,
       headers: response.headers,
-      body: raw ? JSON.parse(raw) : null,
+      body: parsedBody,
     };
   }
 

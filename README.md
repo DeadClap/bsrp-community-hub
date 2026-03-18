@@ -1,6 +1,6 @@
 # BSRP Community Hub
 
-Backend foundation for a modular FiveM community management platform. This starter focuses on Phase 1: Discord-backed access control, platform-managed RBAC, staff access workflows, FiveM identity linking, whitelist checks, event ingestion, and audit history.
+Backend foundation for a modular FiveM community management platform. This starter focuses on Phase 1: Discord-backed access control, platform-managed RBAC, staff access workflows, FiveM identity linking, whitelist checks, event ingestion, audit history, and a lightweight staff review dashboard.
 
 ## What is included
 
@@ -11,7 +11,8 @@ Backend foundation for a modular FiveM community management platform. This start
 - Discord OAuth-ready config surface with startup validation
 - Postgres schema bootstrap, seed, reset, and migration scripts for local testing
 - SQL-based schema migrations tracked in `schema_migrations`
-- Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, and FiveM event idempotency
+- Staff web dashboard at `/staff` for pending-member review, member search, and audit visibility
+- Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, FiveM event idempotency, and staff dashboard serving
 
 ## Install
 
@@ -71,6 +72,7 @@ DISCORD_OAUTH_SCOPES=identify guilds guilds.members.read
 
 Then start the app and visit:
 
+- `GET /staff`
 - `GET /api/auth/discord/authorize`
 - complete the Discord flow against the configured callback `GET /api/auth/discord/callback`
 
@@ -95,6 +97,7 @@ Server default:
 ## Useful endpoints
 
 - `GET /health`
+- `GET /staff`
 - `GET /api/auth/discord/authorize`
 - `GET /api/auth/discord/callback`
 - `POST /api/auth/discord/login`
@@ -153,5 +156,5 @@ FiveM event ingestion:
 - Add a frontend login button and session handoff flow for Discord OAuth
 - Add follow-up migrations instead of relying on a single baseline schema file
 - Add background jobs and outbound sync for Discord and FiveM operations
-- Introduce a frontend staff portal and operator dashboard
+- Expand the staff portal into a fuller operations dashboard
 - Expand shared entities for CAD, MDT, and dispatch modules

@@ -7,6 +7,17 @@ export function json(response, payload, statusCode = 200) {
   return payload;
 }
 
+export function text(response, payload, statusCode = 200, contentType = "text/plain; charset=utf-8") {
+  response.statusCode = statusCode;
+  response.setHeader("content-type", contentType);
+  response.end(payload);
+  return payload;
+}
+
+export function html(response, payload, statusCode = 200) {
+  return text(response, payload, statusCode, "text/html; charset=utf-8");
+}
+
 export function noContent(response) {
   response.statusCode = 204;
   response.end();

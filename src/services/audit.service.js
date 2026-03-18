@@ -1,5 +1,18 @@
 import { now } from "../shared/utils.js";
 
+function toComparableTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  const timestamp = Date.parse(String(value));
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 export class AuditService {
   constructor(store) {
     this.store = store;
@@ -23,6 +36,6 @@ export class AuditService {
   async listEvents() {
     return (await this.store.list("auditEvents"))
       .slice()
-      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+      .sort((left, right) => toComparableTimestamp(right.createdAt) - toComparableTimestamp(left.createdAt));
   }
 }

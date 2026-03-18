@@ -1,6 +1,23 @@
-import { json, noContent, parseJsonBody } from "./platform/http.js";
+import { html, json, noContent, parseJsonBody, text } from "./platform/http.js";
+import {
+  renderStaffDashboardHtml,
+  staffDashboardScript,
+  staffDashboardStyles,
+} from "./ui/staff-dashboard.js";
 
 export function registerRoutes(router, context) {
+  router.get("/staff", async (_request, response) => {
+    html(response, renderStaffDashboardHtml());
+  });
+
+  router.get("/assets/staff.css", async (_request, response) => {
+    text(response, staffDashboardStyles, 200, "text/css; charset=utf-8");
+  });
+
+  router.get("/assets/staff.js", async (_request, response) => {
+    text(response, staffDashboardScript, 200, "application/javascript; charset=utf-8");
+  });
+
   router.get("/health", async (_request, response) => {
     json(response, { status: "ok" });
   });

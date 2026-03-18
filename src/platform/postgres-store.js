@@ -13,6 +13,18 @@ function normalizeIntegerId(id) {
   return value;
 }
 
+function normalizeTimestamp(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  return String(value);
+}
+
 function jsonColumn(name, fallback) {
   return {
     name,
@@ -53,8 +65,8 @@ const COLLECTION_SPECS = {
         displayName: row.display_name,
         email: row.email,
         status: row.status,
-        createdAt: row.created_at,
-        reviewedAt: row.reviewed_at,
+        createdAt: normalizeTimestamp(row.created_at),
+        reviewedAt: normalizeTimestamp(row.reviewed_at),
         reviewedBy: row.reviewed_by,
         reviewNotes: row.review_notes,
       };
@@ -96,8 +108,8 @@ const COLLECTION_SPECS = {
         username: row.username,
         guildMember: row.guild_member,
         roles: row.roles ?? [],
-        lastSyncedAt: row.last_synced_at,
-        provisionedAt: row.provisioned_at,
+        lastSyncedAt: normalizeTimestamp(row.last_synced_at),
+        provisionedAt: normalizeTimestamp(row.provisioned_at),
       };
     },
   },
@@ -181,7 +193,7 @@ const COLLECTION_SPECS = {
         roleId: row.role_id,
         status: row.status,
         assignedBy: row.assigned_by,
-        assignedAt: row.assigned_at,
+        assignedAt: normalizeTimestamp(row.assigned_at),
       };
     },
   },
@@ -242,7 +254,7 @@ const COLLECTION_SPECS = {
         type: row.type,
         license: row.license,
         discordId: row.discord_id,
-        linkedAt: row.linked_at,
+        linkedAt: normalizeTimestamp(row.linked_at),
       };
     },
   },
@@ -336,7 +348,7 @@ const COLLECTION_SPECS = {
         playerId: row.player_id,
         actorUserId: row.actor_user_id,
         action: row.action,
-        createdAt: row.created_at,
+        createdAt: normalizeTimestamp(row.created_at),
         metadata: row.metadata ?? {},
       };
     },
@@ -371,7 +383,7 @@ const COLLECTION_SPECS = {
         actorUserId: row.actor_user_id,
         targetType: row.target_type,
         targetId: row.target_id,
-        createdAt: row.created_at,
+        createdAt: normalizeTimestamp(row.created_at),
         metadata: row.metadata ?? {},
       };
     },
@@ -412,9 +424,9 @@ const COLLECTION_SPECS = {
         departmentId: row.department_id,
         requestedRoleId: row.requested_role_id,
         status: row.status,
-        submittedAt: row.submitted_at,
+        submittedAt: normalizeTimestamp(row.submitted_at),
         notes: row.notes,
-        decidedAt: row.decided_at,
+        decidedAt: normalizeTimestamp(row.decided_at),
         decidedBy: row.decided_by,
         decisionNotes: row.decision_notes,
       };
@@ -444,8 +456,8 @@ const COLLECTION_SPECS = {
         id: row.id,
         userId: row.user_id,
         status: row.status,
-        createdAt: row.created_at,
-        revokedAt: row.revoked_at,
+        createdAt: normalizeTimestamp(row.created_at),
+        revokedAt: normalizeTimestamp(row.revoked_at),
       };
     },
   },
@@ -476,10 +488,10 @@ const COLLECTION_SPECS = {
       return {
         id: row.id,
         status: row.status,
-        createdAt: row.created_at,
-        expiresAt: row.expires_at,
-        consumedAt: row.consumed_at,
-        expiredAt: row.expired_at,
+        createdAt: normalizeTimestamp(row.created_at),
+        expiresAt: normalizeTimestamp(row.expires_at),
+        consumedAt: normalizeTimestamp(row.consumed_at),
+        expiredAt: normalizeTimestamp(row.expired_at),
         discordUserId: row.discord_user_id,
       };
     },

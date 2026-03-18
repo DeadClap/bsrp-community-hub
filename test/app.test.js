@@ -76,6 +76,30 @@ test("env loader reads values without overwriting existing env", () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("staff dashboard serves html", async () => {
+  const app = await createTestApp();
+  const response = await app.inject({ method: "GET", path: "/staff" });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "text/html; charset=utf-8");
+  assert.match(response.body, /Staff Operations Desk/);
+  assert.match(response.body, /\/assets\/staff\.js/);
+
+  await app.close();
+});
+
+test("staff dashboard javascript serves as a static asset", async () => {
+  const app = await createTestApp();
+  const response = await app.inject({ method: "GET", path: "/assets/staff.js" });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["content-type"], "application/javascript; charset=utf-8");
+  assert.match(response.body, /loadDashboard/);
+  assert.match(response.body, /api\/community\/members/);
+
+  await app.close();
+});
+
 test("discord oauth validation requires the full credential set when enabled", () => {
   assert.throws(
     () =>
