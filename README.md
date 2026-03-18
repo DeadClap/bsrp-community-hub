@@ -9,7 +9,7 @@ Backend foundation for a modular FiveM community management platform. This start
 - Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
 - Real Discord OAuth authorization URL generation and callback exchange flow
 - Discord OAuth-ready config surface with startup validation
-- Postgres schema bootstrap script for local testing
+- Postgres schema bootstrap, seed, and reset scripts for local testing
 - Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, and FiveM event idempotency
 
 ## Install
@@ -20,7 +20,7 @@ pnpm install
 
 ## Environment file
 
-Copy [`.env.example`](D:/Development/bsrp-community-hub/.env.example) to `.env` and edit the values for your machine. The app automatically loads `.env` for both `pnpm start` and `pnpm db:init`.
+Copy [`.env.example`](D:/Development/bsrp-community-hub/.env.example) to `.env` and edit the values for your machine. The app automatically loads `.env` for `pnpm start`, `pnpm db:init`, `pnpm db:seed`, and `pnpm db:reset`.
 
 ## Run locally
 
@@ -36,10 +36,23 @@ Postgres mode:
 # .env
 STORAGE_DRIVER=postgres
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/bsrp_community_hub
-SEED_ON_BOOT=true
+SEED_ON_BOOT=false
 
 pnpm db:init
+pnpm db:seed
 pnpm start
+```
+
+Reset Postgres data:
+
+```bash
+# reset only
+SEED_ON_BOOT=false
+pnpm db:reset
+
+# reset and reseed
+SEED_ON_BOOT=true
+pnpm db:reset
 ```
 
 Discord OAuth mode:
@@ -85,6 +98,7 @@ Server default:
 - `GET /api/auth/discord/callback`
 - `POST /api/auth/discord/login`
 - `POST /api/auth/link/fivem`
+- `POST /api/community/members/:userId/status`
 - `GET /api/rbac/departments`
 - `POST /api/rbac/assignments`
 - `GET /api/community/access-requests`
@@ -107,13 +121,13 @@ Discord login:
 }
 ```
 
-Access request approval:
+Pending member approval:
 
 ```json
 {
-  "actorUserId": "user_1",
-  "decision": "approve",
-  "notes": "Approved for staff onboarding"
+  "actorUserId": 1,
+  "status": "active",
+  "notes": "Approved by command staff"
 }
 ```
 
@@ -121,7 +135,7 @@ FiveM event ingestion:
 
 ```json
 {
-  "actorUserId": "user_1",
+  "actorUserId": 1,
   "eventKey": "evt-001",
   "kind": "admin.action",
   "serverId": "server_1",

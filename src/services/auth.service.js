@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { AppError, badRequest, forbidden, notFound } from "../shared/errors.js";
-import { ACCOUNT_PROVIDER, SESSION_STATUS } from "../shared/constants.js";
+import { ACCOUNT_PROVIDER, SESSION_STATUS, USER_STATUS } from "../shared/constants.js";
 import { now, requireFields } from "../shared/utils.js";
 
 function buildStateExpiry(minutes = 10) {
   return new Date(Date.now() + minutes * 60 * 1000).toISOString();
+}
+
+function nextNumericId(items) {
+  return items.reduce((max, item) => {
+    const value = Number(item.id);
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, 0) + 1;
 }
 
 export class AuthService {
@@ -22,16 +29,16 @@ export class AuthService {
       notFound("User not found");
     }
 
-    if (user.status === "pending") {
+    if (user.status === USER_STATUS.PENDING) {
       return {
-        status: "pending",
+        status: USER_STATUS.PENDING,
         user,
         permissions: [],
         message: "Your account is pending staff approval.",
       };
     }
 
-    if (user.status !== "active") {
+    if (user.status !== USER_STATUS.ACTIVE) {
       forbidden("User is not active");
     }
 
@@ -55,7 +62,7 @@ export class AuthService {
     });
 
     return {
-      status: "active",
+      status: USER_STATUS.ACTIVE,
       session,
       user,
       permissions: await this.policy.permissionsForUser(user.id),
@@ -65,10 +72,10 @@ export class AuthService {
   async provisionPendingDiscordMember({ discordUser, guildMember }) {
     const timestamp = now();
     const user = {
-      id: `user_${(await this.store.list("users")).length + 1}`,
+      id: nextNumericId(await this.store.list("users")),
       displayName: discordUser.global_name ?? discordUser.username,
       email: discordUser.email ?? null,
-      status: "pending",
+      status: USER_STATUS.PENDING,
       createdAt: timestamp,
     };
 
@@ -208,7 +215,7 @@ export class AuthService {
 
     const result = await this.createSessionForDiscordAccount(account, { authMethod: "oauth" });
 
-    if (result.status === "pending") {
+    if (result.status === USER_STATUS.PENDING) {
       await this.audit.record({
         action: "auth.discord_pending_login",
         actorUserId: account.userId,
@@ -243,7 +250,7 @@ export class AuthService {
 
     const identity = {
       id: `identity_${(await this.store.list("identityLinks")).length + 1}`,
-      userId: payload.userId,
+      userId: user.id,
       type: "fivem",
       license: payload.license,
       discordId: payload.discordId,
@@ -257,7 +264,7 @@ export class AuthService {
       actorUserId: payload.actorUserId,
       targetType: "identity",
       targetId: identity.id,
-      metadata: { userId: payload.userId, license: payload.license },
+      metadata: { userId: user.id, license: payload.license },
     });
 
     return { identity };

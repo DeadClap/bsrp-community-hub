@@ -141,7 +141,7 @@ test("discord callback exchanges code and creates a session for a linked member"
   });
 
   assert.equal(callback.statusCode, 201);
-  assert.equal(callback.body.user.id, "user_1");
+  assert.equal(callback.body.user.id, 1);
   assert.equal(callback.body.status, "active");
   assert.equal(callback.body.session.status, "active");
   assert.ok(callback.body.permissions.includes("rbac.manage"));
@@ -193,6 +193,7 @@ test("discord callback auto-provisions unknown members in pending state", async 
   assert.ok(provisionedAccount);
   assert.equal(provisionedUser.status, USER_STATUS.PENDING);
   assert.equal(provisionedAccount.userId, provisionedUser.id);
+  assert.equal(typeof provisionedUser.id, "number");
   await app.close();
 });
 
@@ -231,7 +232,7 @@ test("staff can approve a pending auto-provisioned member and enable login", asy
   const approval = await app.inject({
     method: "POST",
     path: `/api/community/members/${pendingUser.id}/status`,
-    body: { actorUserId: "user_1", status: USER_STATUS.ACTIVE, notes: "Approved by command staff" },
+    body: { actorUserId: 1, status: USER_STATUS.ACTIVE, notes: "Approved by command staff" },
   });
 
   assert.equal(approval.statusCode, 200);
@@ -259,7 +260,7 @@ test("discord login creates a session for a linked active user", async () => {
   });
 
   assert.equal(response.statusCode, 201);
-  assert.equal(response.body.user.id, "user_1");
+  assert.equal(response.body.user.id, 1);
   assert.equal(response.body.status, USER_STATUS.ACTIVE);
   assert.equal(response.body.session.status, "active");
   assert.ok(response.body.permissions.includes("rbac.manage"));
@@ -271,7 +272,7 @@ test("approving an access request assigns the requested membership", async () =>
   const response = await app.inject({
     method: "POST",
     path: "/api/community/access-requests/request_1/decision",
-    body: { actorUserId: "user_1", decision: "approve" },
+    body: { actorUserId: 1, decision: "approve" },
   });
 
   assert.equal(response.statusCode, 200);
@@ -280,7 +281,7 @@ test("approving an access request assigns the requested membership", async () =>
   const snapshot = await app.context.store.snapshot();
   const membership = snapshot.memberships.find(
     (item) =>
-      item.userId === "user_2" &&
+      item.userId === 2 &&
       item.departmentId === "dept_2" &&
       item.roleId === "role_3" &&
       item.status === MEMBERSHIP_STATUS.ACTIVE,
@@ -296,7 +297,7 @@ test("discord sync applies inbound role mapping when needed", async () => {
     method: "POST",
     path: "/api/integrations/discord/sync",
     body: {
-      actorUserId: "user_1",
+      actorUserId: 1,
       discordId: "discord-lane",
       roles: ["guild_member", "leo_member", "leo_command"],
     },
@@ -306,7 +307,7 @@ test("discord sync applies inbound role mapping when needed", async () => {
   assert.equal(response.body.synced, true);
 
   const memberships = (await app.context.store.snapshot()).memberships.filter(
-    (membership) => membership.userId === "user_2",
+    (membership) => membership.userId === 2,
   );
 
   assert.ok(memberships.some((membership) => membership.roleId === "role_1"));
@@ -323,7 +324,7 @@ test("whitelist check denies banned players", async () => {
   const response = await app.inject({
     method: "POST",
     path: "/api/integrations/fivem/whitelist-check",
-    body: { actorUserId: "user_1", license: "license:lane" },
+    body: { actorUserId: 1, license: "license:lane" },
   });
 
   assert.equal(response.statusCode, 200);
@@ -339,7 +340,7 @@ test("fivem event ingestion is idempotent by event key", async () => {
     method: "POST",
     path: "/api/integrations/fivem/events",
     body: {
-      actorUserId: "user_1",
+      actorUserId: 1,
       eventKey: "evt-idempotent",
       kind: EVENT_KIND.ADMIN_ACTION,
       serverId: "server_1",
@@ -352,7 +353,7 @@ test("fivem event ingestion is idempotent by event key", async () => {
     method: "POST",
     path: "/api/integrations/fivem/events",
     body: {
-      actorUserId: "user_1",
+      actorUserId: 1,
       eventKey: "evt-idempotent",
       kind: EVENT_KIND.ADMIN_ACTION,
       serverId: "server_1",

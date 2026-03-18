@@ -4,30 +4,31 @@ import {
   EVENT_KIND,
   MEMBERSHIP_STATUS,
   SESSION_STATUS,
+  USER_STATUS,
 } from "./shared/constants.js";
 
 export function createSeedState() {
   return {
     users: [
       {
-        id: "user_1",
+        id: 1,
         displayName: "Chief Harper",
         email: "harper@bsrp.local",
-        status: "active",
+        status: USER_STATUS.ACTIVE,
         createdAt: "2026-03-15T12:00:00.000Z",
       },
       {
-        id: "user_2",
+        id: 2,
         displayName: "Officer Lane",
         email: "lane@bsrp.local",
-        status: "active",
+        status: USER_STATUS.ACTIVE,
         createdAt: "2026-03-15T12:00:00.000Z",
       },
     ],
     connectedAccounts: [
       {
         id: "connected_1",
-        userId: "user_1",
+        userId: 1,
         provider: ACCOUNT_PROVIDER.DISCORD,
         providerAccountId: "discord-chief",
         username: "chiefharper",
@@ -36,7 +37,7 @@ export function createSeedState() {
       },
       {
         id: "connected_2",
-        userId: "user_2",
+        userId: 2,
         provider: ACCOUNT_PROVIDER.DISCORD,
         providerAccountId: "discord-lane",
         username: "officerlane",
@@ -92,7 +93,7 @@ export function createSeedState() {
     memberships: [
       {
         id: "membership_1",
-        userId: "user_1",
+        userId: 1,
         departmentId: "dept_1",
         roleId: "role_1",
         status: MEMBERSHIP_STATUS.ACTIVE,
@@ -100,17 +101,17 @@ export function createSeedState() {
       },
       {
         id: "membership_2",
-        userId: "user_2",
+        userId: 2,
         departmentId: "dept_1",
         roleId: "role_2",
         status: MEMBERSHIP_STATUS.ACTIVE,
-        assignedBy: "user_1",
+        assignedBy: 1,
       },
     ],
     permissionGrants: [
       {
         id: "grant_1",
-        userId: "user_1",
+        userId: 1,
         permission: "audit.view",
         effect: "allow",
         scope: "global",
@@ -119,7 +120,7 @@ export function createSeedState() {
     identityLinks: [
       {
         id: "identity_1",
-        userId: "user_1",
+        userId: 1,
         type: "fivem",
         license: "license:chief-harper",
         discordId: "discord-chief",
@@ -127,7 +128,7 @@ export function createSeedState() {
       },
       {
         id: "identity_2",
-        userId: "user_2",
+        userId: 2,
         type: "fivem",
         license: "license:lane",
         discordId: "discord-lane",
@@ -137,7 +138,7 @@ export function createSeedState() {
     playerProfiles: [
       {
         id: "player_1",
-        userId: "user_1",
+        userId: 1,
         characterName: "Avery Harper",
         license: "license:chief-harper",
         whitelistStatus: "approved",
@@ -146,7 +147,7 @@ export function createSeedState() {
       },
       {
         id: "player_2",
-        userId: "user_2",
+        userId: 2,
         characterName: "Jamie Lane",
         license: "license:lane",
         whitelistStatus: "approved",
@@ -168,7 +169,7 @@ export function createSeedState() {
         kind: EVENT_KIND.ADMIN_ACTION,
         serverId: "server_1",
         playerId: "player_2",
-        actorUserId: "user_1",
+        actorUserId: 1,
         action: "warned",
         createdAt: "2026-03-15T12:15:00.000Z",
         metadata: { reason: "Scene disruption" },
@@ -188,7 +189,7 @@ export function createSeedState() {
     accessRequests: [
       {
         id: "request_1",
-        userId: "user_2",
+        userId: 2,
         departmentId: "dept_2",
         requestedRoleId: "role_3",
         status: ACCESS_REQUEST_STATUS.PENDING,
@@ -198,7 +199,7 @@ export function createSeedState() {
     sessions: [
       {
         id: "session_1",
-        userId: "user_1",
+        userId: 1,
         status: SESSION_STATUS.ACTIVE,
         createdAt: "2026-03-15T12:00:00.000Z",
       },

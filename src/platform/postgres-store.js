@@ -27,6 +27,10 @@ function getSpec(collection) {
   return spec;
 }
 
+function normalizeId(id) {
+  return String(id);
+}
+
 export class PostgresStore {
   constructor(pool) {
     this.pool = pool;
@@ -61,6 +65,15 @@ export class PostgresStore {
     }
   }
 
+  async reset() {
+    const tables = Object.values(COLLECTION_SPECS)
+      .map((spec) => spec.table)
+      .reverse()
+      .join(", ");
+
+    await this.pool.query(`TRUNCATE TABLE ${tables}`);
+  }
+
   async isEmpty() {
     const result = await this.pool.query("SELECT COUNT(*)::int AS count FROM hub_users");
     return result.rows[0].count === 0;
@@ -87,7 +100,7 @@ export class PostgresStore {
 
   async get(collection, id) {
     const spec = getSpec(collection);
-    const result = await this.pool.query(`SELECT id, payload FROM ${spec.table} WHERE id = $1`, [id]);
+    const result = await this.pool.query(`SELECT id, payload FROM ${spec.table} WHERE id = $1`, [normalizeId(id)]);
     const row = result.rows[0];
 
     if (!row) {
@@ -99,7 +112,7 @@ export class PostgresStore {
 
   async insert(collection, value) {
     const spec = getSpec(collection);
-    const id = spec.kind === "scalar" ? value : value.id;
+    const id = spec.kind === "scalar" ? normalizeId(value) : normalizeId(value.id);
     const payload = spec.kind === "scalar" ? { value } : value;
 
     await this.pool.query(
@@ -119,12 +132,12 @@ export class PostgresStore {
 
     const next = await updater(current);
     const spec = getSpec(collection);
-    const nextId = spec.kind === "scalar" ? next : next.id;
+    const nextId = spec.kind === "scalar" ? normalizeId(next) : normalizeId(next.id);
     const payload = spec.kind === "scalar" ? { value: next } : next;
 
     await this.pool.query(
       `UPDATE ${spec.table} SET id = $2, payload = $3::jsonb, updated_at = NOW() WHERE id = $1`,
-      [id, nextId, JSON.stringify(payload)],
+      [normalizeId(id), nextId, JSON.stringify(payload)],
     );
 
     return next;

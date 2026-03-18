@@ -6,7 +6,7 @@ export class OperationsService {
     this.policy = policy;
   }
 
-  async getPlayerProfile(playerId, actorUserId = "user_1") {
+  async getPlayerProfile(playerId, actorUserId = 1) {
     if (!(await this.policy.hasPermission(actorUserId, "operations.view_player"))) {
       forbidden("Actor lacks operations.view_player");
     }

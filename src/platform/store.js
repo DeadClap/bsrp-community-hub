@@ -1,5 +1,9 @@
 import { clone } from "../shared/utils.js";
 
+function matchesId(left, right) {
+  return String(left) === String(right);
+}
+
 export class MemoryStore {
   constructor(initialState = {}) {
     this.state = clone(initialState);
@@ -10,7 +14,7 @@ export class MemoryStore {
   }
 
   async get(collection, id) {
-    return (await this.list(collection)).find((item) => item.id === id) ?? null;
+    return (await this.list(collection)).find((item) => matchesId(item.id, id)) ?? null;
   }
 
   async insert(collection, value) {
@@ -22,7 +26,7 @@ export class MemoryStore {
 
   async replace(collection, id, updater) {
     const items = await this.list(collection);
-    const index = items.findIndex((item) => item.id === id);
+    const index = items.findIndex((item) => matchesId(item.id, id));
     if (index === -1) {
       return null;
     }
