@@ -7,6 +7,7 @@ Backend foundation for a modular FiveM community management platform. This start
 - Native Node.js HTTP API with clear module seams for `auth`, `rbac`, `community`, `integrations`, `operations`, and `audit`
 - Shared policy evaluator for permission checks across modules
 - Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
+- Typed relational Postgres tables with foreign keys, uniqueness constraints, and indexes for the current Phase 1 entities
 - Real Discord OAuth authorization URL generation and callback exchange flow
 - Discord OAuth-ready config surface with startup validation
 - Postgres schema bootstrap, seed, and reset scripts for local testing
@@ -150,7 +151,7 @@ FiveM event ingestion:
 ## Next build targets
 
 - Add a frontend login button and session handoff flow for Discord OAuth
-- Replace JSON payload tables with typed relational schemas per domain
+- Add relational migrations/versioning instead of schema-on-boot only
 - Add background jobs and outbound sync for Discord and FiveM operations
 - Introduce a frontend staff portal and operator dashboard
 - Expand shared entities for CAD, MDT, and dispatch modules
