@@ -1,6 +1,9 @@
-import { ACCESS_REQUEST_STATUS, MEMBERSHIP_STATUS } from "../shared/constants.js";
+import { ACCESS_REQUEST_STATUS, MEMBERSHIP_STATUS, USER_STATUS } from "../shared/constants.js";
 import { badRequest, forbidden, notFound } from "../shared/errors.js";
 import { now, requireFields } from "../shared/utils.js";
+
+const APPROVAL_STATUSES = new Set([USER_STATUS.ACTIVE, USER_STATUS.REJECTED]);
+const MANAGEMENT_STATUSES = new Set([USER_STATUS.SUSPENDED, USER_STATUS.ACTIVE]);
 
 export class CommunityService {
   constructor(store, audit, policy, rbac) {
@@ -20,6 +23,55 @@ export class CommunityService {
       memberships: memberships.filter((membership) => membership.userId === user.id),
       connectedAccounts: accounts.filter((account) => account.userId === user.id),
     }));
+  }
+
+  async setUserStatus(userId, payload) {
+    const missingField = requireFields(payload, ["actorUserId", "status"]);
+    if (missingField) {
+      badRequest(`Missing required field: ${missingField}`);
+    }
+
+    const user = await this.store.get("users", userId);
+    if (!user) {
+      notFound("User not found");
+    }
+
+    const targetStatus = payload.status;
+    const canReview = await this.policy.hasPermission(payload.actorUserId, "community.review_access");
+    const canManage = await this.policy.hasPermission(payload.actorUserId, "community.manage_members");
+
+    if (user.status === USER_STATUS.PENDING && APPROVAL_STATUSES.has(targetStatus)) {
+      if (!canReview) {
+        forbidden("Actor lacks community.review_access");
+      }
+    } else if (MANAGEMENT_STATUSES.has(targetStatus)) {
+      if (!canManage && !canReview) {
+        forbidden("Actor lacks member management permission");
+      }
+    } else {
+      badRequest(`Unsupported status transition to: ${targetStatus}`);
+    }
+
+    const updatedUser = await this.store.replace("users", userId, (existing) => ({
+      ...existing,
+      status: targetStatus,
+      reviewedAt: now(),
+      reviewedBy: payload.actorUserId,
+      reviewNotes: payload.notes ?? "",
+    }));
+
+    await this.audit.record({
+      action: "community.user_status_updated",
+      actorUserId: payload.actorUserId,
+      targetType: "user",
+      targetId: userId,
+      metadata: {
+        previousStatus: user.status,
+        status: targetStatus,
+      },
+    });
+
+    return { user: updatedUser };
   }
 
   async createAccessRequest(payload) {

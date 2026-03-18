@@ -54,6 +54,12 @@ export function registerRoutes(router, context) {
     json(response, result, 201);
   });
 
+  router.post("/api/community/members/:userId/status", async (request, response, params) => {
+    const body = await parseJsonBody(request);
+    const result = await context.services.community.setUserStatus(params.userId, body);
+    json(response, result);
+  });
+
   router.post("/api/community/access-requests", async (request, response) => {
     const body = await parseJsonBody(request);
     const result = await context.services.community.createAccessRequest(body);

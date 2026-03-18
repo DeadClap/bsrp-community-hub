@@ -7,7 +7,7 @@ import { createApp } from "../src/app.js";
 import { loadEnvFile } from "../src/platform/env.js";
 import { getConfig, validateConfig } from "../src/platform/config.js";
 import { createSeedState } from "../src/seed.js";
-import { EVENT_KIND, MEMBERSHIP_STATUS } from "../src/shared/constants.js";
+import { EVENT_KIND, MEMBERSHIP_STATUS, USER_STATUS } from "../src/shared/constants.js";
 
 function createDiscordFetchStub({ userId = "discord-chief", username = "chiefharper-real", roles = ["guild_member", "leo_command"] } = {}) {
   return async (url, options = {}) => {
@@ -179,7 +179,7 @@ test("discord callback auto-provisions unknown members in pending state", async 
 
   assert.equal(callback.statusCode, 202);
   assert.equal(callback.body.status, "pending");
-  assert.equal(callback.body.user.status, "pending");
+  assert.equal(callback.body.user.status, USER_STATUS.PENDING);
   assert.equal(callback.body.session ?? null, null);
   assert.deepEqual(callback.body.permissions, []);
 
@@ -191,8 +191,62 @@ test("discord callback auto-provisions unknown members in pending state", async 
 
   assert.ok(provisionedUser);
   assert.ok(provisionedAccount);
-  assert.equal(provisionedUser.status, "pending");
+  assert.equal(provisionedUser.status, USER_STATUS.PENDING);
   assert.equal(provisionedAccount.userId, provisionedUser.id);
+  await app.close();
+});
+
+test("staff can approve a pending auto-provisioned member and enable login", async () => {
+  const app = await createTestApp({
+    env: {
+      DISCORD_OAUTH_ENABLED: "true",
+      DISCORD_CLIENT_ID: "client-id",
+      DISCORD_CLIENT_SECRET: "client-secret",
+      DISCORD_REDIRECT_URI: "http://localhost:3000/api/auth/discord/callback",
+      DISCORD_GUILD_ID: "guild-123",
+      DISCORD_BOT_TOKEN: "bot-token",
+    },
+    dependencies: {
+      fetch: createDiscordFetchStub({
+        userId: "discord-approve-user",
+        username: "approveme",
+        roles: ["guild_member"],
+      }),
+    },
+  });
+
+  const authorize = await app.inject({ method: "GET", path: "/api/auth/discord/authorize" });
+  const callback = await app.inject({
+    method: "GET",
+    path: `/api/auth/discord/callback?code=oauth-code&state=${authorize.body.state}`,
+  });
+
+  assert.equal(callback.statusCode, 202);
+
+  const snapshot = await app.context.store.snapshot();
+  const pendingUser = snapshot.users.find((user) => user.displayName === "approveme");
+  assert.ok(pendingUser);
+  assert.equal(pendingUser.status, USER_STATUS.PENDING);
+
+  const approval = await app.inject({
+    method: "POST",
+    path: `/api/community/members/${pendingUser.id}/status`,
+    body: { actorUserId: "user_1", status: USER_STATUS.ACTIVE, notes: "Approved by command staff" },
+  });
+
+  assert.equal(approval.statusCode, 200);
+  assert.equal(approval.body.user.status, USER_STATUS.ACTIVE);
+
+  const login = await app.inject({
+    method: "POST",
+    path: "/api/auth/discord/login",
+    body: { discordId: "discord-approve-user", username: "approveme" },
+  });
+
+  assert.equal(login.statusCode, 201);
+  assert.equal(login.body.status, USER_STATUS.ACTIVE);
+  assert.equal(login.body.user.id, pendingUser.id);
+  assert.equal(login.body.session.status, "active");
   await app.close();
 });
 
@@ -206,7 +260,7 @@ test("discord login creates a session for a linked active user", async () => {
 
   assert.equal(response.statusCode, 201);
   assert.equal(response.body.user.id, "user_1");
-  assert.equal(response.body.status, "active");
+  assert.equal(response.body.status, USER_STATUS.ACTIVE);
   assert.equal(response.body.session.status, "active");
   assert.ok(response.body.permissions.includes("rbac.manage"));
   await app.close();

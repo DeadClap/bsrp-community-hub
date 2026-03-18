@@ -2,6 +2,13 @@ export const ACCOUNT_PROVIDER = {
   DISCORD: "discord",
 };
 
+export const USER_STATUS = {
+  ACTIVE: "active",
+  PENDING: "pending",
+  SUSPENDED: "suspended",
+  REJECTED: "rejected",
+};
+
 export const MEMBERSHIP_STATUS = {
   ACTIVE: "active",
   SUSPENDED: "suspended",
