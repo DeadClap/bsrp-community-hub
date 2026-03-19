@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS hub_access_requests CASCADE;
 DROP TABLE IF EXISTS hub_audit_events CASCADE;
 DROP TABLE IF EXISTS hub_operational_events CASCADE;
 DROP TABLE IF EXISTS hub_server_connections CASCADE;
+DROP TABLE IF EXISTS hub_user_game_access CASCADE;
 DROP TABLE IF EXISTS hub_player_profiles CASCADE;
 DROP TABLE IF EXISTS hub_identity_links CASCADE;
 DROP TABLE IF EXISTS hub_permission_grants CASCADE;
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS hub_roles (
   department_id TEXT NOT NULL REFERENCES hub_departments (id) ON DELETE CASCADE,
   slug TEXT NOT NULL,
   name TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
   UNIQUE (department_id, slug)
 );
@@ -69,7 +71,8 @@ CREATE TABLE IF NOT EXISTS hub_memberships (
   role_id TEXT NOT NULL REFERENCES hub_roles (id) ON DELETE CASCADE,
   status TEXT NOT NULL,
   assigned_by TEXT,
-  assigned_at TIMESTAMPTZ
+  assigned_at TIMESTAMPTZ,
+  UNIQUE (user_id, department_id)
 );
 CREATE INDEX IF NOT EXISTS hub_memberships_user_id_idx ON hub_memberships (user_id);
 CREATE INDEX IF NOT EXISTS hub_memberships_department_id_idx ON hub_memberships (department_id);
@@ -96,16 +99,16 @@ CREATE TABLE IF NOT EXISTS hub_identity_links (
 CREATE INDEX IF NOT EXISTS hub_identity_links_user_id_idx ON hub_identity_links (user_id);
 CREATE INDEX IF NOT EXISTS hub_identity_links_discord_id_idx ON hub_identity_links (discord_id);
 
-CREATE TABLE IF NOT EXISTS hub_player_profiles (
+CREATE TABLE IF NOT EXISTS hub_user_game_access (
   id TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES hub_users (id) ON DELETE CASCADE,
-  character_name TEXT NOT NULL,
-  license TEXT NOT NULL UNIQUE,
+  primary_license TEXT NOT NULL UNIQUE,
   whitelist_status TEXT NOT NULL,
   ban_status TEXT NOT NULL,
-  notes JSONB NOT NULL DEFAULT '[]'::jsonb
+  notes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  UNIQUE (user_id)
 );
-CREATE INDEX IF NOT EXISTS hub_player_profiles_user_id_idx ON hub_player_profiles (user_id);
+CREATE INDEX IF NOT EXISTS hub_user_game_access_user_id_idx ON hub_user_game_access (user_id);
 
 CREATE TABLE IF NOT EXISTS hub_server_connections (
   id TEXT PRIMARY KEY,
@@ -118,13 +121,13 @@ CREATE TABLE IF NOT EXISTS hub_operational_events (
   id TEXT PRIMARY KEY,
   kind TEXT NOT NULL,
   server_id TEXT REFERENCES hub_server_connections (id) ON DELETE SET NULL,
-  player_id TEXT REFERENCES hub_player_profiles (id) ON DELETE SET NULL,
+  access_id TEXT REFERENCES hub_user_game_access (id) ON DELETE SET NULL,
   actor_user_id TEXT,
   action TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL,
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE INDEX IF NOT EXISTS hub_operational_events_player_id_idx ON hub_operational_events (player_id);
+CREATE INDEX IF NOT EXISTS hub_operational_events_access_id_idx ON hub_operational_events (access_id);
 CREATE INDEX IF NOT EXISTS hub_operational_events_server_id_idx ON hub_operational_events (server_id);
 CREATE INDEX IF NOT EXISTS hub_operational_events_kind_idx ON hub_operational_events (kind);
 CREATE INDEX IF NOT EXISTS hub_operational_events_created_at_idx ON hub_operational_events (created_at);
@@ -173,7 +176,8 @@ CREATE TABLE IF NOT EXISTS hub_oauth_states (
   expires_at TIMESTAMPTZ NOT NULL,
   consumed_at TIMESTAMPTZ,
   expired_at TIMESTAMPTZ,
-  discord_user_id TEXT
+  discord_user_id TEXT,
+  return_to TEXT
 );
 CREATE INDEX IF NOT EXISTS hub_oauth_states_status_idx ON hub_oauth_states (status);
 CREATE INDEX IF NOT EXISTS hub_oauth_states_expires_at_idx ON hub_oauth_states (expires_at);
@@ -192,3 +196,4 @@ CREATE INDEX IF NOT EXISTS hub_integration_mappings_role_id_idx ON hub_integrati
 CREATE TABLE IF NOT EXISTS hub_processed_event_keys (
   event_key TEXT PRIMARY KEY
 );
+

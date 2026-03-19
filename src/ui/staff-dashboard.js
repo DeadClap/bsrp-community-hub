@@ -77,10 +77,10 @@ export function renderAppDashboardHtml() {
           </p>
         </div>
         <div class="operator-panel compact-panel">
-          <p class="eyebrow">Session</p>
-          <p id="dashboardUserMeta" class="operator-hint">Checking current account context.</p>
+          <p class="eyebrow">Profile overview</p>
+          <div id="dashboardProfileSummary" class="profile-summary-card"></div>
           <div id="dashboardActions" class="stack-actions">
-            <a href="/staff" class="action-link secondary">Open staff desk</a>
+            <a href="/dashboard#profile" class="action-link secondary">View profile</a>
             <a href="/" class="action-link secondary">Go home</a>
           </div>
         </div>
@@ -99,10 +99,10 @@ export function renderAppDashboardHtml() {
         <section class="panel" id="profile" aria-labelledby="identityTitle">
           <div class="panel-header">
             <p class="eyebrow">Profile</p>
-            <h2 id="identityTitle">Linked accounts and identities</h2>
+            <h2 id="identityTitle">Linked accounts and FiveM access</h2>
           </div>
           <div id="dashboardLinkedAccounts" class="member-table"></div>
-          <div id="dashboardPlayerProfiles" class="member-table"></div>
+          <div id="dashboardGameAccess" class="member-table"></div>
         </section>
 
         <section class="panel panel-wide" aria-labelledby="actionsTitle">

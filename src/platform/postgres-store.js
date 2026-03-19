@@ -141,6 +141,7 @@ const COLLECTION_SPECS = {
       { name: "department_id" },
       { name: "slug" },
       { name: "name" },
+      { name: "sort_order" },
       jsonColumn("permissions", []),
     ],
     toRow(value) {
@@ -149,6 +150,7 @@ const COLLECTION_SPECS = {
         department_id: value.departmentId,
         slug: value.slug,
         name: value.name,
+        sort_order: value.sortOrder ?? 0,
         permissions: value.permissions ?? [],
       };
     },
@@ -158,6 +160,7 @@ const COLLECTION_SPECS = {
         departmentId: row.department_id,
         slug: row.slug,
         name: row.name,
+        sortOrder: row.sort_order ?? 0,
         permissions: row.permissions ?? [],
       };
     },
@@ -258,14 +261,13 @@ const COLLECTION_SPECS = {
       };
     },
   },
-  playerProfiles: {
-    table: "hub_player_profiles",
+  userGameAccess: {
+    table: "hub_user_game_access",
     idColumn: "id",
     normalizeId: normalizeTextId,
     columns: [
       { name: "user_id" },
-      { name: "character_name" },
-      { name: "license" },
+      { name: "primary_license" },
       { name: "whitelist_status" },
       { name: "ban_status" },
       jsonColumn("notes", []),
@@ -274,8 +276,7 @@ const COLLECTION_SPECS = {
       return {
         id: String(value.id),
         user_id: normalizeIntegerId(value.userId),
-        character_name: value.characterName,
-        license: value.license,
+        primary_license: value.primaryLicense,
         whitelist_status: value.whitelistStatus,
         ban_status: value.banStatus,
         notes: value.notes ?? [],
@@ -285,8 +286,7 @@ const COLLECTION_SPECS = {
       return {
         id: row.id,
         userId: row.user_id,
-        characterName: row.character_name,
-        license: row.license,
+        primaryLicense: row.primary_license,
         whitelistStatus: row.whitelist_status,
         banStatus: row.ban_status,
         notes: row.notes ?? [],
@@ -322,7 +322,7 @@ const COLLECTION_SPECS = {
     columns: [
       { name: "kind" },
       { name: "server_id" },
-      { name: "player_id" },
+      { name: "access_id" },
       { name: "actor_user_id" },
       { name: "action" },
       { name: "created_at" },
@@ -333,7 +333,7 @@ const COLLECTION_SPECS = {
         id: String(value.id),
         kind: value.kind,
         server_id: value.serverId ?? null,
-        player_id: value.playerId ?? null,
+        access_id: value.accessId ?? null,
         actor_user_id: value.actorUserId != null ? String(value.actorUserId) : null,
         action: value.action,
         created_at: value.createdAt,
@@ -345,7 +345,7 @@ const COLLECTION_SPECS = {
         id: row.id,
         kind: row.kind,
         serverId: row.server_id,
-        playerId: row.player_id,
+        accessId: row.access_id,
         actorUserId: row.actor_user_id,
         action: row.action,
         createdAt: normalizeTimestamp(row.created_at),
@@ -697,5 +697,4 @@ export class PostgresStore {
 }
 
 export { COLLECTION_SPECS };
-
 

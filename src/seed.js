@@ -12,14 +12,14 @@ export function createSeedState() {
     users: [
       {
         id: 1,
-        displayName: "Chief Harper",
-        email: "harper@bsrp.local",
+        displayName: "Chris' Couch",
+        email: "chris@bsrp.local",
         status: USER_STATUS.ACTIVE,
         createdAt: "2026-03-15T12:00:00.000Z",
       },
       {
         id: 2,
-        displayName: "Officer Lane",
+        displayName: "Jamie Lane",
         email: "lane@bsrp.local",
         status: USER_STATUS.ACTIVE,
         createdAt: "2026-03-15T12:00:00.000Z",
@@ -31,9 +31,9 @@ export function createSeedState() {
         userId: 1,
         provider: ACCOUNT_PROVIDER.DISCORD,
         providerAccountId: "discord-chief",
-        username: "chiefharper",
+        username: "chriscouch",
         guildMember: true,
-        roles: ["guild_member", "leo_command"],
+        roles: ["guild_member", "community_owner", "leo_command"],
       },
       {
         id: "connected_2",
@@ -48,21 +48,38 @@ export function createSeedState() {
     departments: [
       {
         id: "dept_1",
-        slug: "law-enforcement",
-        name: "Law Enforcement",
+        slug: "community-leadership",
+        name: "Community Leadership",
       },
       {
         id: "dept_2",
-        slug: "staff",
-        name: "Community Staff",
+        slug: "sahp",
+        name: "SAHP",
       },
     ],
     roles: [
       {
         id: "role_1",
         departmentId: "dept_1",
-        slug: "chief",
-        name: "Chief",
+        slug: "owner",
+        name: "Owner",
+        sortOrder: 100,
+        permissions: [
+          "rbac.manage",
+          "community.review_access",
+          "community.manage_members",
+          "operations.view_player",
+          "integrations.manage_discord",
+          "integrations.manage_fivem",
+          "audit.view",
+        ],
+      },
+      {
+        id: "role_2",
+        departmentId: "dept_2",
+        slug: "superintendent",
+        name: "Superintendent",
+        sortOrder: 80,
         permissions: [
           "rbac.manage",
           "community.review_access",
@@ -72,22 +89,12 @@ export function createSeedState() {
         ],
       },
       {
-        id: "role_2",
-        departmentId: "dept_1",
-        slug: "officer",
-        name: "Officer",
-        permissions: ["operations.view_player"],
-      },
-      {
         id: "role_3",
         departmentId: "dept_2",
-        slug: "community-admin",
-        name: "Community Admin",
-        permissions: [
-          "community.review_access",
-          "audit.view",
-          "integrations.manage_discord",
-        ],
+        slug: "trooper",
+        name: "Trooper",
+        sortOrder: 10,
+        permissions: ["operations.view_player"],
       },
     ],
     memberships: [
@@ -101,22 +108,22 @@ export function createSeedState() {
       },
       {
         id: "membership_2",
-        userId: 2,
-        departmentId: "dept_1",
+        userId: 1,
+        departmentId: "dept_2",
         roleId: "role_2",
+        status: MEMBERSHIP_STATUS.ACTIVE,
+        assignedBy: "system",
+      },
+      {
+        id: "membership_3",
+        userId: 2,
+        departmentId: "dept_2",
+        roleId: "role_3",
         status: MEMBERSHIP_STATUS.ACTIVE,
         assignedBy: 1,
       },
     ],
-    permissionGrants: [
-      {
-        id: "grant_1",
-        userId: 1,
-        permission: "audit.view",
-        effect: "allow",
-        scope: "global",
-      },
-    ],
+    permissionGrants: [],
     identityLinks: [
       {
         id: "identity_1",
@@ -135,21 +142,19 @@ export function createSeedState() {
         linkedAt: "2026-03-15T12:00:00.000Z",
       },
     ],
-    playerProfiles: [
+    userGameAccess: [
       {
-        id: "player_1",
+        id: "access_1",
         userId: 1,
-        characterName: "Avery Harper",
-        license: "license:chief-harper",
+        primaryLicense: "license:chief-harper",
         whitelistStatus: "approved",
         banStatus: "clear",
         notes: [],
       },
       {
-        id: "player_2",
+        id: "access_2",
         userId: 2,
-        characterName: "Jamie Lane",
-        license: "license:lane",
+        primaryLicense: "license:lane",
         whitelistStatus: "approved",
         banStatus: "clear",
         notes: [],
@@ -168,7 +173,7 @@ export function createSeedState() {
         id: "event_1",
         kind: EVENT_KIND.ADMIN_ACTION,
         serverId: "server_1",
-        playerId: "player_2",
+        accessId: "access_2",
         actorUserId: 1,
         action: "warned",
         createdAt: "2026-03-15T12:15:00.000Z",
@@ -191,7 +196,7 @@ export function createSeedState() {
         id: "request_1",
         userId: 2,
         departmentId: "dept_2",
-        requestedRoleId: "role_3",
+        requestedRoleId: "role_2",
         status: ACCESS_REQUEST_STATUS.PENDING,
         submittedAt: "2026-03-15T12:30:00.000Z",
       },
@@ -209,7 +214,7 @@ export function createSeedState() {
       {
         id: "mapping_1",
         provider: ACCOUNT_PROVIDER.DISCORD,
-        externalRoleId: "leo_command",
+        externalRoleId: "community_owner",
         departmentId: "dept_1",
         roleId: "role_1",
         direction: "inbound",
@@ -217,12 +222,21 @@ export function createSeedState() {
       {
         id: "mapping_2",
         provider: ACCOUNT_PROVIDER.DISCORD,
-        externalRoleId: "leo_member",
-        departmentId: "dept_1",
+        externalRoleId: "leo_command",
+        departmentId: "dept_2",
         roleId: "role_2",
+        direction: "inbound",
+      },
+      {
+        id: "mapping_3",
+        provider: ACCOUNT_PROVIDER.DISCORD,
+        externalRoleId: "leo_member",
+        departmentId: "dept_2",
+        roleId: "role_3",
         direction: "inbound",
       },
     ],
     processedEventKeys: [],
   };
 }
+

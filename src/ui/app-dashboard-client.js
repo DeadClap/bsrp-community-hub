@@ -40,6 +40,22 @@ function renderHeader(payload) {
   profileLink.textContent = payload.user.displayName;
 }
 
+function summarizeProfile(payload) {
+  const primaryMembership = payload.memberships[0] ?? null;
+  const discordConnected = payload.connectedAccounts.some((account) => account.provider === "discord");
+  const fivemLinked = payload.identityLinks.some((identity) => identity.type === "fivem");
+  const access = payload.gameAccess[0] ?? null;
+
+  return [
+    { label: "Status", value: payload.user.status },
+    { label: "Department", value: primaryMembership?.department?.name ?? "Not assigned" },
+    { label: "Rank", value: primaryMembership?.rank?.name ?? "No rank" },
+    { label: "Discord", value: discordConnected ? "Connected" : "Not linked" },
+    { label: "FiveM", value: fivemLinked ? "Linked" : "Not linked" },
+    { label: "Whitelist", value: access?.whitelistStatus ?? "Not set" },
+  ];
+}
+
 async function fetchDashboard() {
   const response = await fetch("/api/dashboard", { credentials: "same-origin" });
   if (response.status === 401) {
@@ -62,12 +78,16 @@ function renderDashboard(payload) {
     payload.nextActions.length > 0
       ? "Your account summary is ready. Review the next steps below to keep moving."
       : "Your account summary is ready. Everything important is linked and up to date.";
-  document.querySelector("#dashboardUserMeta").innerHTML = `Signed in as user <code>${payload.user.id}</code> with status ${badge(payload.user.status)}.`;
+
+  document.querySelector("#dashboardProfileSummary").innerHTML = summarizeProfile(payload)
+    .map((item) => `<div class="profile-summary-row"><span>${item.label}</span><strong>${item.value}</strong></div>`)
+    .join("");
 
   const actions = document.querySelector("#dashboardActions");
   const staffLink = actions.querySelector('a[href="/staff"]');
   if (staffLink && !payload.nextActions.some((action) => action.href === "/staff")) {
-    staffLink.textContent = "Staff desk unavailable";
+    staffLink.textContent = "Go to profile";
+    staffLink.setAttribute("href", "/dashboard#profile");
   }
 
   renderCards(
@@ -75,7 +95,7 @@ function renderDashboard(payload) {
     payload.memberships,
     "No departments yet",
     "This account does not have department assignments yet.",
-    (membership) => `<article class="member-row compact-row"><div><h3>${membership.department?.name ?? membership.departmentId}</h3><p class="member-meta">Rank: <strong>${membership.role?.name ?? membership.roleId}</strong> ${badge(membership.status)}</p></div></article>`,
+    (membership) => `<article class="member-row compact-row"><div><h3>${membership.department?.name ?? membership.departmentId}</h3><p class="member-meta">Rank: <strong>${membership.rank?.name ?? membership.role?.name ?? membership.roleId}</strong> ${badge(membership.status)}</p></div></article>`,
   );
 
   renderCards(
@@ -83,7 +103,7 @@ function renderDashboard(payload) {
     payload.accessRequests,
     "No access requests",
     "Any department access requests you submit will show up here.",
-    (request) => `<article class="member-row compact-row"><div><h3>${request.departmentId}</h3><p class="member-meta">Requested role <strong>${request.requestedRoleId}</strong> ${badge(request.status)}</p></div></article>`,
+    (request) => `<article class="member-row compact-row"><div><h3>${request.department?.name ?? request.departmentId}</h3><p class="member-meta">Requested rank <strong>${request.requestedRank?.name ?? request.requestedRoleId}</strong> ${badge(request.status)}</p></div></article>`,
   );
 
   renderCards(
@@ -95,13 +115,13 @@ function renderDashboard(payload) {
   );
 
   renderCards(
-    document.querySelector("#dashboardPlayerProfiles"),
-    [...payload.identityLinks, ...payload.playerProfiles],
-    "No identities or profiles",
-    "Link a FiveM identity to populate operational profile data here.",
+    document.querySelector("#dashboardGameAccess"),
+    [...payload.identityLinks, ...payload.gameAccess],
+    "No FiveM access records",
+    "Link a FiveM identity to populate account-level access status here.",
     (item) => {
-      if (item.characterName) {
-        return `<article class="member-row compact-row"><div><h3>${item.characterName}</h3><p class="member-meta">Whitelist ${badge(item.whitelistStatus)} Ban ${badge(item.banStatus)}</p></div></article>`;
+      if (item.primaryLicense) {
+        return `<article class="member-row compact-row"><div><h3>FiveM access</h3><p class="member-meta"><code>${item.primaryLicense}</code> Whitelist ${badge(item.whitelistStatus)} Ban ${badge(item.banStatus)}</p></div></article>`;
       }
       return `<article class="member-row compact-row"><div><h3>${item.type.toUpperCase()} identity</h3><p class="member-meta"><code>${item.license}</code></p></div></article>`;
     },
@@ -111,7 +131,7 @@ function renderDashboard(payload) {
     document.querySelector("#dashboardNextActions"),
     payload.nextActions,
     "No immediate actions",
-    "Your account looks ready for its current role.",
+    "Your account looks ready for its current rank assignments.",
     (action) => `<article class="pending-card"><h3>${action.label}</h3><p class="pending-meta">Recommended next step for this account.</p><div class="pending-actions"><a class="action-link" href="${action.href}">Open</a></div></article>`,
   );
 
@@ -127,8 +147,8 @@ function renderDashboard(payload) {
     document.querySelector("#dashboardOperationsFeed"),
     payload.operationalEvents,
     "No recent operational events",
-    "Once your linked player profiles produce activity, it will show here.",
-    (event) => `<article class="audit-item"><div class="row-between"><h3>${event.action}</h3><span class="member-meta">${formatTimestamp(event.createdAt)}</span></div><p class="audit-meta">${event.kind}${event.playerId ? ` for <code>${event.playerId}</code>` : ""}</p></article>`,
+    "Once your linked access records produce activity, it will show here.",
+    (event) => `<article class="audit-item"><div class="row-between"><h3>${event.action}</h3><span class="member-meta">${formatTimestamp(event.createdAt)}</span></div><p class="audit-meta">${event.kind}${event.accessId ? ` for <code>${event.accessId}</code>` : ""}</p></article>`,
   );
 }
 
@@ -158,3 +178,4 @@ fetchDashboard()
   .catch((error) => {
     document.querySelector("#dashboardIntro").textContent = error.message;
   });
+

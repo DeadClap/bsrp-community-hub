@@ -238,6 +238,7 @@ export function registerRoutes(router, context) {
     json(response, {
       departments: await context.services.rbac.listDepartments(),
       roles: await context.services.rbac.listRoles(),
+      ranks: await context.services.rbac.listRoles(),
     });
   });
 
@@ -293,8 +294,8 @@ export function registerRoutes(router, context) {
     json(response, result);
   });
 
-  router.get("/api/operations/players/:playerId", async (_request, response, params) => {
-    const result = await context.services.operations.getPlayerProfile(params.playerId);
+  router.get("/api/operations/access/:accessId", async (_request, response, params) => {
+    const result = await context.services.operations.getAccessProfile(params.accessId);
     json(response, result);
   });
 
@@ -307,5 +308,3 @@ export function registerRoutes(router, context) {
     noContent(response);
   });
 }
-
-

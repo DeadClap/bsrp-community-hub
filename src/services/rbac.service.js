@@ -40,20 +40,41 @@ export class RbacService {
       notFound("User, role, or department not found");
     }
 
-    const membership = {
-      id: `membership_${(await this.store.list("memberships")).length + 1}`,
-      userId: payload.userId,
-      departmentId: payload.departmentId,
-      roleId: payload.roleId,
-      status: payload.status ?? MEMBERSHIP_STATUS.ACTIVE,
-      assignedBy: payload.actorUserId,
-      assignedAt: now(),
-    };
+    if (role.departmentId !== department.id) {
+      badRequest("Rank must belong to the selected department");
+    }
 
-    await this.store.insert("memberships", membership);
+    const existingMembership = await this.store.find(
+      "memberships",
+      (membership) =>
+        membership.userId === payload.userId &&
+        membership.departmentId === payload.departmentId,
+    );
+
+    const membership = existingMembership
+      ? await this.store.replace("memberships", existingMembership.id, (current) => ({
+          ...current,
+          roleId: payload.roleId,
+          status: payload.status ?? MEMBERSHIP_STATUS.ACTIVE,
+          assignedBy: payload.actorUserId,
+          assignedAt: now(),
+        }))
+      : {
+          id: `membership_${(await this.store.list("memberships")).length + 1}`,
+          userId: payload.userId,
+          departmentId: payload.departmentId,
+          roleId: payload.roleId,
+          status: payload.status ?? MEMBERSHIP_STATUS.ACTIVE,
+          assignedBy: payload.actorUserId,
+          assignedAt: now(),
+        };
+
+    if (!existingMembership) {
+      await this.store.insert("memberships", membership);
+    }
 
     await this.audit.record({
-      action: "rbac.membership_assigned",
+      action: existingMembership ? "rbac.rank_updated" : "rbac.rank_assigned",
       actorUserId: payload.actorUserId,
       targetType: "membership",
       targetId: membership.id,
@@ -64,6 +85,11 @@ export class RbacService {
       },
     });
 
-    return { membership };
+    return {
+      membership: {
+        ...membership,
+        rankId: membership.roleId,
+      },
+    };
   }
 }

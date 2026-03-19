@@ -426,7 +426,7 @@ test("dashboard api returns signed-in user account data", async () => {
   assert.ok(Array.isArray(response.body.auditEvents));
   assert.ok(Array.isArray(response.body.operationalEvents));
   assert.ok(Array.isArray(response.body.nextActions));
-  assert.equal(response.body.summary.membershipCount, 1);
+  assert.equal(response.body.summary.membershipCount, 2);
   await app.close();
 });
 
@@ -490,7 +490,7 @@ test("approving an access request assigns the requested membership", async () =>
     (item) =>
       item.userId === 2 &&
       item.departmentId === "dept_2" &&
-      item.roleId === "role_3" &&
+      item.roleId === "role_2" &&
       item.status === MEMBERSHIP_STATUS.ACTIVE,
   );
 
@@ -517,13 +517,14 @@ test("discord sync applies inbound role mapping when needed", async () => {
     (membership) => membership.userId === 2,
   );
 
-  assert.ok(memberships.some((membership) => membership.roleId === "role_1"));
+  assert.ok(memberships.some((membership) => membership.roleId === "role_2" && membership.status === MEMBERSHIP_STATUS.ACTIVE));
+  assert.ok(!memberships.some((membership) => membership.roleId === "role_3" && membership.status === MEMBERSHIP_STATUS.ACTIVE));
   await app.close();
 });
 
 test("whitelist check denies banned players", async () => {
   const app = await createTestApp();
-  await app.context.store.replace("playerProfiles", "player_2", (player) => ({
+  await app.context.store.replace("userGameAccess", "access_2", (player) => ({
     ...player,
     banStatus: "banned",
   }));
@@ -551,7 +552,7 @@ test("fivem event ingestion is idempotent by event key", async () => {
       eventKey: "evt-idempotent",
       kind: EVENT_KIND.ADMIN_ACTION,
       serverId: "server_1",
-      playerId: "player_2",
+      accessId: "access_2",
       action: "kicked",
     },
   });
@@ -564,7 +565,7 @@ test("fivem event ingestion is idempotent by event key", async () => {
       eventKey: "evt-idempotent",
       kind: EVENT_KIND.ADMIN_ACTION,
       serverId: "server_1",
-      playerId: "player_2",
+      accessId: "access_2",
       action: "kicked",
     },
   });
@@ -574,6 +575,10 @@ test("fivem event ingestion is idempotent by event key", async () => {
   assert.equal(second.body.duplicate, true);
   await app.close();
 });
+
+
+
+
 
 
 

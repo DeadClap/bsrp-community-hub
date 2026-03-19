@@ -2,6 +2,10 @@ import { EVENT_KIND, MEMBERSHIP_STATUS } from "../shared/constants.js";
 import { badRequest, forbidden, notFound } from "../shared/errors.js";
 import { now, requireFields } from "../shared/utils.js";
 
+function rolePriority(role) {
+  return Number(role?.sortOrder ?? role?.priority ?? 0);
+}
+
 export class IntegrationsService {
   constructor(store, audit, policy, rbac) {
     this.store = store;
@@ -36,14 +40,22 @@ export class IntegrationsService {
 
     const mappings = await this.store.filter(
       "integrationMappings",
-      (item) => item.provider === "discord" && item.direction === "inbound",
+      (item) => item.provider === "discord" && item.direction === "inbound" && payload.roles.includes(item.externalRoleId),
     );
+    const roles = await this.store.list("roles");
+    const preferredMappingsByDepartment = new Map();
 
     for (const mapping of mappings) {
-      if (!payload.roles.includes(mapping.externalRoleId)) {
-        continue;
-      }
+      const mappedRole = roles.find((role) => role.id === mapping.roleId) ?? null;
+      const existing = preferredMappingsByDepartment.get(mapping.departmentId);
+      const existingRole = existing ? roles.find((role) => role.id === existing.roleId) ?? null : null;
 
+      if (!existing || rolePriority(mappedRole) > rolePriority(existingRole)) {
+        preferredMappingsByDepartment.set(mapping.departmentId, mapping);
+      }
+    }
+
+    for (const mapping of preferredMappingsByDepartment.values()) {
       const alreadyAssigned = await this.store.find(
         "memberships",
         (membership) =>
@@ -92,7 +104,7 @@ export class IntegrationsService {
       id: `event_${(await this.store.list("operationalEvents")).length + 1}`,
       kind: payload.kind,
       serverId: payload.serverId,
-      playerId: payload.playerId ?? null,
+      accessId: payload.accessId ?? null,
       actorUserId: payload.actorUserId,
       action: payload.action ?? payload.kind,
       createdAt: now(),
@@ -102,11 +114,21 @@ export class IntegrationsService {
     await this.store.insert("operationalEvents", event);
     await this.store.insert("processedEventKeys", payload.eventKey);
 
-    if (payload.kind === EVENT_KIND.BAN_SYNCED && payload.playerId) {
-      await this.store.replace("playerProfiles", payload.playerId, (player) => ({
-        ...player,
-        banStatus: payload.metadata?.banStatus ?? "banned",
-      }));
+    if (payload.kind === EVENT_KIND.BAN_SYNCED) {
+      if (payload.accessId) {
+        await this.store.replace("userGameAccess", payload.accessId, (access) => ({
+          ...access,
+          banStatus: payload.metadata?.banStatus ?? "banned",
+        }));
+      } else if (payload.metadata?.license) {
+        const access = await this.store.find("userGameAccess", (item) => item.primaryLicense === payload.metadata.license);
+        if (access) {
+          await this.store.replace("userGameAccess", access.id, (current) => ({
+            ...current,
+            banStatus: payload.metadata?.banStatus ?? "banned",
+          }));
+        }
+      }
     }
 
     await this.audit.record({
@@ -138,11 +160,11 @@ export class IntegrationsService {
       };
     }
 
-    const player = await this.store.find("playerProfiles", (item) => item.license === payload.license);
-    if (!player) {
+    const access = await this.store.find("userGameAccess", (item) => item.userId === identity.userId);
+    if (!access) {
       return {
         allowed: false,
-        reason: "player_profile_missing",
+        reason: "game_access_missing",
       };
     }
 
@@ -155,18 +177,18 @@ export class IntegrationsService {
     return {
       allowed:
         user?.status === "active" &&
-        player.whitelistStatus === "approved" &&
-        player.banStatus === "clear" &&
+        access.whitelistStatus === "approved" &&
+        access.banStatus === "clear" &&
         !suspendedMembership,
       reason:
-        player.banStatus !== "clear"
+        access.banStatus !== "clear"
           ? "player_banned"
           : suspendedMembership
             ? "membership_suspended"
-            : player.whitelistStatus !== "approved"
+            : access.whitelistStatus !== "approved"
               ? "whitelist_not_approved"
               : "ok",
-      playerId: player.id,
+      accessId: access.id,
       userId: identity.userId,
     };
   }

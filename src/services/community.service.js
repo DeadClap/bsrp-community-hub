@@ -17,10 +17,19 @@ export class CommunityService {
     const users = await this.store.list("users");
     const memberships = await this.store.list("memberships");
     const accounts = await this.store.list("connectedAccounts");
+    const departments = await this.store.list("departments");
+    const roles = await this.store.list("roles");
 
     return users.map((user) => ({
       ...user,
-      memberships: memberships.filter((membership) => membership.userId === user.id),
+      memberships: memberships
+        .filter((membership) => membership.userId === user.id)
+        .map((membership) => ({
+          ...membership,
+          department: departments.find((department) => department.id === membership.departmentId) ?? null,
+          role: roles.find((role) => role.id === membership.roleId) ?? null,
+          rank: roles.find((role) => role.id === membership.roleId) ?? null,
+        })),
       connectedAccounts: accounts.filter((account) => account.userId === user.id),
     }));
   }
@@ -78,6 +87,16 @@ export class CommunityService {
     const missingField = requireFields(payload, ["userId", "departmentId", "requestedRoleId"]);
     if (missingField) {
       badRequest(`Missing required field: ${missingField}`);
+    }
+
+    const department = await this.store.get("departments", payload.departmentId);
+    const rank = await this.store.get("roles", payload.requestedRoleId);
+    if (!department || !rank) {
+      notFound("Department or rank not found");
+    }
+
+    if (rank.departmentId !== department.id) {
+      badRequest("Requested rank must belong to the selected department");
     }
 
     const request = {
@@ -155,6 +174,15 @@ export class CommunityService {
   }
 
   async listAccessRequests() {
-    return this.store.list("accessRequests");
+    const requests = await this.store.list("accessRequests");
+    const departments = await this.store.list("departments");
+    const roles = await this.store.list("roles");
+
+    return requests.map((request) => ({
+      ...request,
+      department: departments.find((department) => department.id === request.departmentId) ?? null,
+      requestedRole: roles.find((role) => role.id === request.requestedRoleId) ?? null,
+      requestedRank: roles.find((role) => role.id === request.requestedRoleId) ?? null,
+    }));
   }
 }

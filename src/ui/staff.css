@@ -1,18 +1,18 @@
 :root {
-  color-scheme: light;
-  --bg: #f6f1e8;
-  --bg-accent: radial-gradient(circle at top left, rgba(255, 137, 92, 0.28), transparent 34%), radial-gradient(circle at top right, rgba(17, 93, 75, 0.22), transparent 30%), linear-gradient(180deg, #f8f3ea 0%, #efe6d8 100%);
-  --surface: rgba(255, 251, 245, 0.9);
-  --surface-strong: rgba(255, 247, 237, 0.96);
-  --line: rgba(35, 31, 32, 0.12);
-  --text: #1e2523;
-  --muted: #58615d;
-  --accent: #ba4b2f;
-  --accent-soft: #f4b49f;
-  --success: #0e7c66;
-  --warn: #b76b12;
-  --danger: #9f2d2f;
-  --shadow: 0 24px 60px rgba(62, 48, 32, 0.14);
+  color-scheme: dark;
+  --bg: #070b12;
+  --bg-accent: radial-gradient(circle at 15% 20%, rgba(42, 96, 170, 0.28), transparent 28%), radial-gradient(circle at 85% 18%, rgba(105, 122, 145, 0.18), transparent 24%), linear-gradient(180deg, #0a0f18 0%, #06090f 100%);
+  --surface: rgba(15, 21, 31, 0.9);
+  --surface-strong: rgba(18, 25, 36, 0.96);
+  --line: rgba(117, 136, 163, 0.2);
+  --text: #edf3ff;
+  --muted: #9caabd;
+  --accent: #5d8fd8;
+  --accent-soft: rgba(93, 143, 216, 0.18);
+  --success: #4dbf92;
+  --warn: #d1a24d;
+  --danger: #d26a6a;
+  --shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
   --radius: 24px;
 }
 
@@ -24,8 +24,21 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg-accent);
+  background-attachment: fixed;
   color: var(--text);
   font-family: "Space Grotesk", sans-serif;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px), radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.18) 100%);
+  background-size: 140px 140px, 140px 140px, 100% 100%;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
 }
 
 button,
@@ -42,6 +55,8 @@ button {
   width: min(1320px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 24px 0 56px;
+  position: relative;
+  z-index: 1;
 }
 
 .site-header {
@@ -51,7 +66,7 @@ button {
   align-items: center;
   padding: 16px 20px;
   margin-bottom: 24px;
-  background: rgba(255, 251, 245, 0.88);
+  background: rgba(12, 17, 25, 0.88);
   border: 1px solid var(--line);
   border-radius: 999px;
   box-shadow: var(--shadow);
@@ -78,15 +93,16 @@ button {
   border: none;
   border-radius: 999px;
   padding: 10px 14px;
-  background: rgba(30, 37, 35, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   text-decoration: none;
   font: inherit;
 }
 
 .nav-link.active {
-  background: var(--text);
-  color: #fff8ef;
+  background: linear-gradient(135deg, #24446f 0%, #5d8fd8 100%);
+  color: #f6fbff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .site-header-meta {
@@ -124,7 +140,7 @@ button {
 
 .eyebrow {
   margin: 0 0 12px;
-  color: var(--accent);
+  color: #7ea8e5;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
   letter-spacing: 0.14em;
@@ -136,7 +152,7 @@ button {
 .auth-card,
 .auth-hero,
 .modal-card {
-  background: var(--surface);
+  background: linear-gradient(180deg, rgba(18, 25, 36, 0.98) 0%, rgba(12, 18, 27, 0.96) 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -169,10 +185,11 @@ button {
 .auth-form input,
 .modal-card textarea {
   width: 100%;
-  border: 1px solid rgba(33, 31, 28, 0.16);
+  border: 1px solid rgba(117, 136, 163, 0.24);
   border-radius: 16px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(5, 10, 18, 0.75);
+  color: var(--text);
 }
 
 .operator-panel button,
@@ -181,8 +198,8 @@ button {
   border: none;
   border-radius: 999px;
   padding: 12px 18px;
-  background: var(--text);
-  color: #fff8ef;
+  background: linear-gradient(135deg, #24446f 0%, #5d8fd8 100%);
+  color: #f6fbff;
   transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
   text-decoration: none;
   text-align: center;
@@ -199,16 +216,16 @@ button {
 
 .action-button.secondary,
 .action-link.secondary {
-  background: rgba(30, 37, 35, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
 }
 
 .action-button.warn {
-  background: var(--warn);
+  background: linear-gradient(135deg, #82581c 0%, #d1a24d 100%);
 }
 
 .action-button.danger {
-  background: var(--danger);
+  background: linear-gradient(135deg, #813636 0%, #d26a6a 100%);
 }
 
 .operator-hint {
@@ -257,15 +274,15 @@ button {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: rgba(30, 37, 35, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   padding: 8px 12px;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
 }
 
 .pill.accent {
-  background: rgba(186, 75, 47, 0.12);
-  color: var(--accent);
+  background: rgba(93, 143, 216, 0.14);
+  color: #9cc2ff;
 }
 
 .metrics {
@@ -282,7 +299,7 @@ button {
 .detail-card {
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: var(--surface-strong);
+  background: rgba(20, 27, 39, 0.94);
 }
 
 .metric-card {
@@ -360,7 +377,7 @@ button {
 }
 
 .member-row button.member-select:hover h3 {
-  color: var(--accent);
+  color: #9cc2ff;
 }
 
 .member-row h3,
@@ -378,27 +395,23 @@ button {
   text-transform: uppercase;
 }
 
-.status-active {
-  background: rgba(14, 124, 102, 0.13);
+.status-active,
+.status-approved,
+.status-clear {
+  background: rgba(77, 191, 146, 0.14);
   color: var(--success);
 }
 
 .status-pending {
-  background: rgba(183, 107, 18, 0.14);
+  background: rgba(209, 162, 77, 0.16);
   color: var(--warn);
 }
 
 .status-suspended,
 .status-rejected,
-.status-banned,
-.status-clear {
-  background: rgba(159, 45, 47, 0.12);
+.status-banned {
+  background: rgba(210, 106, 106, 0.14);
   color: var(--danger);
-}
-
-.status-approved {
-  background: rgba(14, 124, 102, 0.13);
-  color: var(--success);
 }
 
 .empty-card,
@@ -442,7 +455,7 @@ button {
 .modal-card code {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
-  background: rgba(30, 37, 35, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 2px 6px;
 }
@@ -455,6 +468,8 @@ button {
   gap: 24px;
   align-content: center;
   padding: 32px 0;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card {
@@ -490,16 +505,16 @@ button {
 .login-feedback {
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(30, 37, 35, 0.08);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .login-feedback[data-variant="warn"] {
-  background: rgba(183, 107, 18, 0.12);
+  background: rgba(209, 162, 77, 0.12);
   color: var(--warn);
 }
 
 .login-feedback[data-variant="error"] {
-  background: rgba(159, 45, 47, 0.12);
+  background: rgba(210, 106, 106, 0.12);
   color: var(--danger);
 }
 
@@ -534,7 +549,7 @@ button {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(30, 37, 35, 0.42);
+  background: rgba(4, 7, 12, 0.72);
 }
 
 .modal-card {
@@ -543,14 +558,38 @@ button {
   z-index: 1;
 }
 
+.profile-summary-card {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.profile-summary-row span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.profile-summary-row strong {
+  font-size: 0.96rem;
+}
+
 .toast {
   position: fixed;
   right: 20px;
   bottom: 20px;
   padding: 14px 18px;
   border-radius: 16px;
-  background: rgba(30, 37, 35, 0.92);
-  color: #fff8ef;
+  background: rgba(8, 12, 19, 0.96);
+  color: #f6fbff;
   box-shadow: var(--shadow);
 }
 

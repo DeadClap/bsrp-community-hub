@@ -6,17 +6,17 @@ export class OperationsService {
     this.policy = policy;
   }
 
-  async getPlayerProfile(playerId, actorUserId = 1) {
+  async getAccessProfile(accessId, actorUserId = 1) {
     if (!(await this.policy.hasPermission(actorUserId, "operations.view_player"))) {
       forbidden("Actor lacks operations.view_player");
     }
 
-    const profile = await this.store.get("playerProfiles", playerId);
-    if (!profile) {
-      notFound("Player profile not found");
+    const access = await this.store.get("userGameAccess", accessId);
+    if (!access) {
+      notFound("User game access not found");
     }
 
-    const events = await this.store.filter("operationalEvents", (event) => event.playerId === playerId);
-    return { player: profile, events };
+    const events = await this.store.filter("operationalEvents", (event) => event.accessId === accessId);
+    return { access, events };
   }
 }
