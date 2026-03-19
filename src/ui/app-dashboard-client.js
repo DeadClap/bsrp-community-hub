@@ -9,10 +9,6 @@ function formatTimestamp(value) {
   }).format(new Date(value));
 }
 
-function metricCard(label, value, detail) {
-  return `<article class="metric-card"><span>${label}</span><strong>${value}</strong><span>${detail}</span></article>`;
-}
-
 function badge(status) {
   return `<span class="status-badge status-${status}">${status}</span>`;
 }
@@ -73,13 +69,6 @@ function renderDashboard(payload) {
   if (staffLink && !payload.nextActions.some((action) => action.href === "/staff")) {
     staffLink.textContent = "Staff desk unavailable";
   }
-
-  document.querySelector("#dashboardSummary").innerHTML = [
-    metricCard("Departments", payload.summary.membershipCount, "Roles currently assigned to this account"),
-    metricCard("Connected accounts", payload.summary.linkedAccountCount, "Discord and future platform links"),
-    metricCard("Identity links", payload.summary.linkedIdentityCount, "Linked FiveM or other platform identities"),
-    metricCard("Pending requests", payload.summary.pendingAccessRequests, "Access requests still awaiting review"),
-  ].join("");
 
   renderCards(
     document.querySelector("#dashboardMemberships"),

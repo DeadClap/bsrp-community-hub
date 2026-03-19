@@ -26,7 +26,7 @@ function renderSiteHeader() {
     <a href="/dashboard" class="brand-link">BSRP Community Hub</a>
     <nav id="siteNav" class="site-nav" aria-label="Primary"></nav>
     <div class="site-header-meta">
-      <a id="profileLink" href="/dashboard#account" class="header-profile">Profile</a>
+      <a id="profileLink" href="/dashboard#profile" class="header-profile">Profile</a>
       <button id="headerLogoutButton" type="button" class="header-logout">Sign out</button>
     </div>
   </header>`;
@@ -87,14 +87,6 @@ export function renderAppDashboardHtml() {
       </header>
 
       <main class="dashboard-grid">
-        <section class="panel panel-wide" aria-labelledby="summaryTitle">
-          <div class="panel-header">
-            <p class="eyebrow">Summary</p>
-            <h2 id="summaryTitle">Your platform snapshot</h2>
-          </div>
-          <div id="dashboardSummary" class="metrics"></div>
-        </section>
-
         <section class="panel" id="account" aria-labelledby="accountTitle">
           <div class="panel-header">
             <p class="eyebrow">Role map</p>
