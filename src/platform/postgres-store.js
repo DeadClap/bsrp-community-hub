@@ -472,6 +472,7 @@ const COLLECTION_SPECS = {
       { name: "consumed_at" },
       { name: "expired_at" },
       { name: "discord_user_id" },
+      { name: "return_to" },
     ],
     toRow(value) {
       return {
@@ -482,6 +483,7 @@ const COLLECTION_SPECS = {
         consumed_at: value.consumedAt ?? null,
         expired_at: value.expiredAt ?? null,
         discord_user_id: value.discordUserId ?? null,
+        return_to: value.returnTo ?? null,
       };
     },
     fromRow(row) {
@@ -493,6 +495,7 @@ const COLLECTION_SPECS = {
         consumedAt: normalizeTimestamp(row.consumed_at),
         expiredAt: normalizeTimestamp(row.expired_at),
         discordUserId: row.discord_user_id,
+        returnTo: row.return_to,
       };
     },
   },
@@ -694,3 +697,5 @@ export class PostgresStore {
 }
 
 export { COLLECTION_SPECS };
+
+

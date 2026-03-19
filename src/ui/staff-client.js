@@ -1,10 +1,20 @@
 const state = {
+  currentUser: null,
+  permissions: [],
   users: [],
   events: [],
   selectedUserId: null,
+  pendingReview: null,
 };
 
 const elements = {
+  siteNav: document.querySelector("#siteNav"),
+  profileLink: document.querySelector("#profileLink"),
+  headerLogoutButton: document.querySelector("#headerLogoutButton"),
+  currentUserName: document.querySelector("#currentUserName"),
+  currentUserMeta: document.querySelector("#currentUserMeta"),
+  reviewNotes: document.querySelector("#reviewNotes"),
+  refreshDashboard: document.querySelector("#refreshDashboard"),
   metrics: document.querySelector("#metrics"),
   pendingCount: document.querySelector("#pendingCount"),
   pendingList: document.querySelector("#pendingList"),
@@ -12,16 +22,14 @@ const elements = {
   memberDetail: document.querySelector("#memberDetail"),
   auditFeed: document.querySelector("#auditFeed"),
   memberSearch: document.querySelector("#memberSearch"),
-  actorUserId: document.querySelector("#actorUserId"),
-  reviewNotes: document.querySelector("#reviewNotes"),
-  refreshDashboard: document.querySelector("#refreshDashboard"),
   emptyCardTemplate: document.querySelector("#emptyCardTemplate"),
+  reviewModal: document.querySelector("#reviewModal"),
+  reviewModalTitle: document.querySelector("#reviewModalTitle"),
+  reviewModalBody: document.querySelector("#reviewModalBody"),
+  modalReviewNotes: document.querySelector("#modalReviewNotes"),
+  confirmReviewAction: document.querySelector("#confirmReviewAction"),
+  cancelReviewAction: document.querySelector("#cancelReviewAction"),
 };
-
-function getActorUserId() {
-  const value = Number(elements.actorUserId.value);
-  return Number.isFinite(value) && value > 0 ? value : 1;
-}
 
 function getReviewNotes() {
   return elements.reviewNotes.value.trim() || "Updated from the staff desk";
@@ -63,6 +71,45 @@ function makeMetric(label, value, detail) {
   return `<article class="metric-card"><span>${label}</span><strong>${value}</strong><span>${detail}</span></article>`;
 }
 
+function statusBadge(status) {
+  return `<span class="status-badge status-${status}">${status}</span>`;
+}
+
+function renderHeader() {
+  const links = [
+    { href: "/dashboard", label: "Dashboard", active: false },
+    { href: "/dashboard#profile", label: "Profile", active: false },
+  ];
+
+  if (state.permissions.some((permission) => ["community.review_access", "community.manage_members", "audit.view", "rbac.manage"].includes(permission))) {
+    links.push({ href: "/staff", label: "Staff", active: true });
+  }
+
+  elements.siteNav.innerHTML = links
+    .map((link) => `<a href="${link.href}" class="${link.active ? "nav-link active" : "nav-link"}">${link.label}</a>`)
+    .join("");
+
+  if (state.currentUser) {
+    elements.profileLink.textContent = `${state.currentUser.displayName}`;
+  }
+}
+
+function renderCurrentUser() {
+  if (!state.currentUser) {
+    elements.currentUserName.textContent = "Unknown operator";
+    elements.currentUserMeta.textContent = "No active staff session found.";
+    return;
+  }
+
+  const currentUserRecord = state.users.find((user) => user.id === state.currentUser.id) ?? state.currentUser;
+  const rankSummary = (currentUserRecord.memberships ?? [])
+    .map((membership) => `${membership.departmentId} / ${membership.roleId}`)
+    .join(" | ");
+
+  elements.currentUserName.textContent = state.currentUser.displayName;
+  elements.currentUserMeta.textContent = rankSummary || `Signed in as user ${state.currentUser.id}.`;
+}
+
 function renderMetrics() {
   const summary = summarizeUsers();
   elements.metrics.innerHTML = [
@@ -77,10 +124,6 @@ function renderMetrics() {
   ].join("");
 
   elements.pendingCount.textContent = `${summary.pending.length} pending`;
-}
-
-function statusBadge(status) {
-  return `<span class="status-badge status-${status}">${status}</span>`;
 }
 
 function renderPendingList() {
@@ -107,8 +150,8 @@ function renderPendingList() {
         <p>${user.email ?? "No email shared by Discord"}</p>
         <p class="pending-meta">Discord roles: ${roleList}</p>
         <div class="pending-actions">
-          <button class="action-button" data-user-id="${user.id}" data-status="active">Approve</button>
-          <button class="action-button secondary" data-user-id="${user.id}" data-status="rejected">Reject</button>
+          <button class="action-button open-review-modal" data-user-id="${user.id}" data-status="active">Approve</button>
+          <button class="action-button secondary open-review-modal" data-user-id="${user.id}" data-status="rejected">Reject</button>
           <button class="action-button secondary member-focus" data-user-id="${user.id}">Inspect</button>
         </div>
       </article>`;
@@ -133,20 +176,20 @@ function renderMemberTable() {
 
       if (user.status === "pending") {
         actions.push(
-          `<button class="action-button" data-user-id="${user.id}" data-status="active">Approve</button>`,
-          `<button class="action-button secondary" data-user-id="${user.id}" data-status="rejected">Reject</button>`,
+          `<button class="action-button open-review-modal" data-user-id="${user.id}" data-status="active">Approve</button>`,
+          `<button class="action-button secondary open-review-modal" data-user-id="${user.id}" data-status="rejected">Reject</button>`,
         );
       }
 
       if (user.status === "active") {
         actions.push(
-          `<button class="action-button warn" data-user-id="${user.id}" data-status="suspended">Suspend</button>`,
+          `<button class="action-button warn open-review-modal" data-user-id="${user.id}" data-status="suspended">Suspend</button>`,
         );
       }
 
       if (user.status === "suspended" || user.status === "rejected") {
         actions.push(
-          `<button class="action-button secondary" data-user-id="${user.id}" data-status="active">Reactivate</button>`,
+          `<button class="action-button secondary open-review-modal" data-user-id="${user.id}" data-status="active">Reactivate</button>`,
         );
       }
 
@@ -177,10 +220,7 @@ function renderMemberDetail() {
   const account = selected.connectedAccounts?.find((item) => item.provider === "discord");
   const memberships =
     (selected.memberships ?? [])
-      .map(
-        (membership) =>
-          `${membership.departmentId} / ${membership.roleId} (${membership.status})`,
-      )
+      .map((membership) => `${membership.departmentId} / ${membership.roleId} (${membership.status})`)
       .join("<br />") || "No memberships";
   const relatedEvents = state.events
     .filter(
@@ -190,21 +230,15 @@ function renderMemberDetail() {
   const actions = [];
 
   if (selected.status !== "active") {
-    actions.push(
-      `<button class="action-button" data-user-id="${selected.id}" data-status="active">Set active</button>`,
-    );
+    actions.push(`<button class="action-button open-review-modal" data-user-id="${selected.id}" data-status="active">Set active</button>`);
   }
 
   if (selected.status !== "rejected") {
-    actions.push(
-      `<button class="action-button secondary" data-user-id="${selected.id}" data-status="rejected">Reject</button>`,
-    );
+    actions.push(`<button class="action-button secondary open-review-modal" data-user-id="${selected.id}" data-status="rejected">Reject</button>`);
   }
 
   if (selected.status === "active") {
-    actions.push(
-      `<button class="action-button warn" data-user-id="${selected.id}" data-status="suspended">Suspend</button>`,
-    );
+    actions.push(`<button class="action-button warn open-review-modal" data-user-id="${selected.id}" data-status="suspended">Suspend</button>`);
   }
 
   elements.memberDetail.innerHTML = `<article class="detail-card">
@@ -232,15 +266,9 @@ function renderMemberDetail() {
     <div class="member-actions">${actions.join("")}</div>
     <div>
       <p class="eyebrow" style="margin-top: 18px;">Recent member trace</p>
-      ${
-        relatedEvents.length > 0
-          ? relatedEvents
-              .map(
-                (event) => `<p class="member-meta"><code>${event.action}</code> ${formatTimestamp(event.createdAt)}</p>`,
-              )
-              .join("")
-          : '<p class="member-meta">No audit entries tied to this member yet.</p>'
-      }
+      ${relatedEvents.length > 0
+        ? relatedEvents.map((event) => `<p class="member-meta"><code>${event.action}</code> ${formatTimestamp(event.createdAt)}</p>`).join("")
+        : '<p class="member-meta">No audit entries tied to this member yet.</p>'}
     </div>
   </article>`;
 }
@@ -255,16 +283,14 @@ function renderAuditFeed() {
   }
 
   elements.auditFeed.innerHTML = events
-    .map(
-      (event) => `<article class="audit-item">
-        <div class="row-between">
-          <h3>${event.action}</h3>
-          <span class="member-meta">${formatTimestamp(event.createdAt)}</span>
-        </div>
-        <p class="audit-meta">Actor <code>${event.actorUserId}</code> -> ${event.targetType} <code>${event.targetId}</code></p>
-        <p class="audit-meta">${JSON.stringify(event.metadata ?? {})}</p>
-      </article>`,
-    )
+    .map((event) => `<article class="audit-item">
+      <div class="row-between">
+        <h3>${event.action}</h3>
+        <span class="member-meta">${formatTimestamp(event.createdAt)}</span>
+      </div>
+      <p class="audit-meta">Actor <code>${event.actorUserId}</code> -> ${event.targetType} <code>${event.targetId}</code></p>
+      <p class="audit-meta">${JSON.stringify(event.metadata ?? {})}</p>
+    </article>`)
     .join("");
 }
 
@@ -276,23 +302,50 @@ function showToast(message) {
   window.setTimeout(() => toast.remove(), 2200);
 }
 
-async function loadDashboard() {
-  const [usersResponse, auditResponse] = await Promise.all([fetch("/api/users"), fetch("/api/audit/events")]);
+function closeReviewModal() {
+  state.pendingReview = null;
+  elements.reviewModal.classList.add("hidden");
+  elements.reviewModal.setAttribute("aria-hidden", "true");
+}
 
-  if (!usersResponse.ok || !auditResponse.ok) {
-    throw new Error("Failed to load dashboard data");
+function openReviewModal(userId, status) {
+  const user = state.users.find((item) => item.id === Number(userId));
+  if (!user) {
+    return;
   }
 
-  const usersPayload = await usersResponse.json();
-  const auditPayload = await auditResponse.json();
+  state.pendingReview = { userId: Number(userId), status };
+  elements.reviewModalTitle.textContent = `${status === "active" ? "Approve or reactivate" : status === "rejected" ? "Reject member" : "Suspend member"}`;
+  elements.reviewModalBody.textContent = `You are about to move ${user.displayName} to ${status}. Confirm the action and save the review note below.`;
+  elements.modalReviewNotes.value = getReviewNotes();
+  elements.reviewModal.classList.remove("hidden");
+  elements.reviewModal.setAttribute("aria-hidden", "false");
+}
 
-  state.users = usersPayload.users ?? [];
-  state.events = auditPayload.events ?? [];
+async function loadDashboard() {
+  const response = await fetch("/api/staff/dashboard", { credentials: "same-origin" });
+
+  if (response.status === 401) {
+    window.location.assign("/login?returnTo=/staff");
+    return;
+  }
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || "Failed to load dashboard data");
+  }
+
+  state.currentUser = payload.currentUser ?? null;
+  state.permissions = payload.permissions ?? [];
+  state.users = payload.users ?? [];
+  state.events = payload.events ?? [];
 
   if (!state.users.some((user) => user.id === state.selectedUserId)) {
     state.selectedUserId = state.users[0]?.id ?? null;
   }
 
+  renderHeader();
+  renderCurrentUser();
   renderMetrics();
   renderPendingList();
   renderMemberTable();
@@ -300,18 +353,23 @@ async function loadDashboard() {
   renderAuditFeed();
 }
 
-async function updateUserStatus(userId, status) {
-  const response = await fetch(`/api/community/members/${userId}/status`, {
+async function updateUserStatus(userId, status, notes) {
+  const response = await fetch(`/api/staff/members/${userId}/status`, {
     method: "POST",
     headers: { "content-type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({
-      actorUserId: getActorUserId(),
       status,
-      notes: getReviewNotes(),
+      notes,
     }),
   });
 
   const payload = await response.json();
+
+  if (response.status === 401) {
+    window.location.assign("/login?returnTo=/staff");
+    return;
+  }
 
   if (!response.ok) {
     throw new Error(payload.error || payload.message || "Failed to update member status");
@@ -320,6 +378,20 @@ async function updateUserStatus(userId, status) {
   showToast(`Member ${userId} moved to ${status}.`);
   state.selectedUserId = Number(userId);
   await loadDashboard();
+}
+
+async function logout() {
+  const response = await fetch("/api/auth/session", {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok && response.status !== 204) {
+    showToast("Unable to end session.");
+    return;
+  }
+
+  window.location.assign("/login?status=signed_out");
 }
 
 elements.refreshDashboard.addEventListener("click", async () => {
@@ -331,21 +403,45 @@ elements.refreshDashboard.addEventListener("click", async () => {
   }
 });
 
+elements.headerLogoutButton.addEventListener("click", () => {
+  void logout();
+});
+
 elements.memberSearch.addEventListener("input", () => {
   renderMemberTable();
 });
 
+elements.cancelReviewAction.addEventListener("click", () => {
+  closeReviewModal();
+});
+
+elements.confirmReviewAction.addEventListener("click", async () => {
+  if (!state.pendingReview) {
+    return;
+  }
+
+  try {
+    await updateUserStatus(
+      state.pendingReview.userId,
+      state.pendingReview.status,
+      elements.modalReviewNotes.value.trim() || getReviewNotes(),
+    );
+    closeReviewModal();
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
 document.body.addEventListener("click", async (event) => {
-  const actionButton = event.target.closest("button[data-user-id][data-status]");
+  const modalBackdrop = event.target.closest("[data-close-modal='true']");
+  if (modalBackdrop) {
+    closeReviewModal();
+    return;
+  }
+
+  const actionButton = event.target.closest(".open-review-modal[data-user-id][data-status]");
   if (actionButton) {
-    try {
-      actionButton.disabled = true;
-      await updateUserStatus(actionButton.dataset.userId, actionButton.dataset.status);
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      actionButton.disabled = false;
-    }
+    openReviewModal(actionButton.dataset.userId, actionButton.dataset.status);
     return;
   }
 

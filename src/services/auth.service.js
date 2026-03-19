@@ -14,6 +14,18 @@ function nextNumericId(items) {
   }, 0) + 1;
 }
 
+function normalizeReturnTo(value) {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  return value;
+}
+
 export class AuthService {
   constructor(store, audit, policy, discordOAuth, config) {
     this.store = store;
@@ -63,6 +75,28 @@ export class AuthService {
 
     return {
       status: USER_STATUS.ACTIVE,
+      session,
+      user,
+      permissions: await this.policy.permissionsForUser(user.id),
+    };
+  }
+
+  async getSessionContext(sessionId) {
+    if (!sessionId) {
+      return null;
+    }
+
+    const session = await this.store.get("sessions", sessionId);
+    if (!session || session.status !== SESSION_STATUS.ACTIVE) {
+      return null;
+    }
+
+    const user = await this.store.get("users", session.userId);
+    if (!user || user.status !== USER_STATUS.ACTIVE) {
+      return null;
+    }
+
+    return {
       session,
       user,
       permissions: await this.policy.permissionsForUser(user.id),
@@ -128,7 +162,7 @@ export class AuthService {
     return this.createSessionForDiscordAccount(account, { authMethod: "direct" });
   }
 
-  async startDiscordOAuth() {
+  async startDiscordOAuth(payload = {}) {
     if (!this.config.discord.oauthEnabled) {
       throw new AppError(400, "Discord OAuth is not enabled in configuration");
     }
@@ -139,6 +173,7 @@ export class AuthService {
       status: "pending",
       createdAt: now(),
       expiresAt: buildStateExpiry(10),
+      returnTo: normalizeReturnTo(payload.returnTo),
     };
 
     await this.store.insert("oauthStates", oauthState);
@@ -147,6 +182,7 @@ export class AuthService {
       state,
       authorizationUrl: this.discordOAuth.createAuthorizationUrl(state),
       expiresAt: oauthState.expiresAt,
+      returnTo: oauthState.returnTo,
     };
   }
 
@@ -225,7 +261,10 @@ export class AuthService {
       });
     }
 
-    return result;
+    return {
+      ...result,
+      returnTo: oauthState.returnTo,
+    };
   }
 
   async linkFiveMIdentity(payload) {

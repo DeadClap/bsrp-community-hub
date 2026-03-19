@@ -41,7 +41,59 @@ button {
 .page-shell {
   width: min(1320px, calc(100vw - 32px));
   margin: 0 auto;
-  padding: 32px 0 56px;
+  padding: 24px 0 56px;
+}
+
+.site-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: rgba(255, 251, 245, 0.88);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.brand-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nav-link,
+.header-profile,
+.header-logout {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(30, 37, 35, 0.08);
+  color: var(--text);
+  text-decoration: none;
+  font: inherit;
+}
+
+.nav-link.active {
+  background: var(--text);
+  color: #fff8ef;
+}
+
+.site-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .hero {
@@ -52,7 +104,12 @@ button {
   margin-bottom: 24px;
 }
 
-.hero h1 {
+.hero-tight {
+  align-items: start;
+}
+
+.hero h1,
+.auth-shell h1 {
   margin: 0;
   font-size: clamp(2.6rem, 5vw, 5.4rem);
   line-height: 0.95;
@@ -75,7 +132,10 @@ button {
 }
 
 .operator-panel,
-.panel {
+.panel,
+.auth-card,
+.auth-hero,
+.modal-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -83,21 +143,31 @@ button {
   backdrop-filter: blur(18px);
 }
 
-.operator-panel {
+.operator-panel,
+.auth-card,
+.auth-hero,
+.modal-card {
   display: grid;
   gap: 10px;
   padding: 20px;
 }
 
+.compact-panel {
+  align-content: start;
+}
+
 .operator-panel label,
-.field-label {
+.field-label,
+.auth-form label,
+.modal-card label {
   color: var(--muted);
   font-size: 0.9rem;
 }
 
-.operator-panel input,
 .operator-panel textarea,
-#memberSearch {
+#memberSearch,
+.auth-form input,
+.modal-card textarea {
   width: 100%;
   border: 1px solid rgba(33, 31, 28, 0.16);
   border-radius: 16px;
@@ -106,21 +176,29 @@ button {
 }
 
 .operator-panel button,
-.action-button {
+.action-button,
+.action-link {
   border: none;
   border-radius: 999px;
   padding: 12px 18px;
   background: var(--text);
   color: #fff8ef;
   transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+  text-decoration: none;
+  text-align: center;
 }
 
 .operator-panel button:hover,
-.action-button:hover {
+.action-button:hover,
+.action-link:hover,
+.nav-link:hover,
+.header-profile:hover,
+.header-logout:hover {
   transform: translateY(-1px);
 }
 
-.action-button.secondary {
+.action-button.secondary,
+.action-link.secondary {
   background: rgba(30, 37, 35, 0.1);
   color: var(--text);
 }
@@ -137,6 +215,12 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.stack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .dashboard-grid {
@@ -238,7 +322,9 @@ button {
 
 .pending-card h3,
 .empty-card h3,
-.detail-card h3 {
+.detail-card h3,
+.auth-card h2,
+.modal-card h2 {
   margin: 0;
 }
 
@@ -303,9 +389,16 @@ button {
 }
 
 .status-suspended,
-.status-rejected {
+.status-rejected,
+.status-banned,
+.status-clear {
   background: rgba(159, 45, 47, 0.12);
   color: var(--danger);
+}
+
+.status-approved {
+  background: rgba(14, 124, 102, 0.13);
+  color: var(--success);
 }
 
 .empty-card,
@@ -334,19 +427,120 @@ button {
 .audit-item p,
 .pending-card p,
 .empty-card p,
-.detail-card p {
+.detail-card p,
+.auth-card p,
+.auth-hero p,
+.modal-card p {
   margin: 0;
 }
 
 .audit-item code,
 .member-meta code,
 .pending-meta code,
-.detail-card code {
+.detail-card code,
+.auth-card code,
+.modal-card code {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.85rem;
   background: rgba(30, 37, 35, 0.06);
   border-radius: 8px;
   padding: 2px 6px;
+}
+
+.auth-shell {
+  width: min(980px, calc(100vw - 32px));
+  margin: 0 auto;
+  min-height: 100vh;
+  display: grid;
+  gap: 24px;
+  align-content: center;
+  padding: 32px 0;
+}
+
+.auth-card {
+  gap: 18px;
+}
+
+.auth-card-block {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-form {
+  gap: 10px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+.login-feedback {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(30, 37, 35, 0.08);
+}
+
+.login-feedback[data-variant="warn"] {
+  background: rgba(183, 107, 18, 0.12);
+  color: var(--warn);
+}
+
+.login-feedback[data-variant="error"] {
+  background: rgba(159, 45, 47, 0.12);
+  color: var(--danger);
+}
+
+.single-card {
+  text-align: center;
+}
+
+.centered-actions {
+  justify-content: center;
+}
+
+.compact-row {
+  grid-template-columns: 1fr;
+}
+
+.permission-list-wrap {
+  margin-top: 14px;
+}
+
+.modal-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 40;
+}
+
+.modal-shell.hidden {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 37, 35, 0.42);
+}
+
+.modal-card {
+  position: relative;
+  width: min(540px, calc(100vw - 32px));
+  z-index: 1;
 }
 
 .toast {
@@ -373,9 +567,15 @@ button {
 }
 
 @media (max-width: 960px) {
+  .site-header,
   .hero,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .site-nav,
+  .site-header-meta {
+    justify-content: flex-start;
   }
 
   .metrics {
@@ -388,13 +588,18 @@ button {
 }
 
 @media (max-width: 640px) {
-  .page-shell {
+  .page-shell,
+  .auth-shell {
     width: min(100vw - 20px, 100%);
     padding-top: 20px;
   }
 
+  .site-header,
   .panel,
-  .operator-panel {
+  .operator-panel,
+  .auth-card,
+  .auth-hero,
+  .modal-card {
     padding: 18px;
     border-radius: 20px;
   }
@@ -403,7 +608,9 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .row-between {
+  .row-between,
+  .stack-actions,
+  .site-header-meta {
     flex-direction: column;
   }
 }

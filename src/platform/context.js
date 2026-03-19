@@ -10,6 +10,7 @@ import { CommunityService } from "../services/community.service.js";
 import { OperationsService } from "../services/operations.service.js";
 import { IntegrationsService } from "../services/integrations.service.js";
 import { DiscordOAuthService } from "../services/discord-oauth.service.js";
+import { DashboardService } from "../services/dashboard.service.js";
 
 async function createStore({ config, initialState }) {
   if (config.storageDriver === "postgres") {
@@ -38,6 +39,7 @@ export async function createPlatformContext({ initialState = {}, config, depende
   const community = new CommunityService(store, audit, policy, rbac);
   const operations = new OperationsService(store, policy);
   const integrations = new IntegrationsService(store, audit, policy, rbac);
+  const dashboard = new DashboardService(store, audit, policy);
 
   return {
     config: resolvedConfig,
@@ -52,6 +54,7 @@ export async function createPlatformContext({ initialState = {}, config, depende
       operations,
       integrations,
       discordOAuth,
+      dashboard,
     },
     async close() {
       await store.close();

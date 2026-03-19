@@ -8,11 +8,12 @@ Backend foundation for a modular FiveM community management platform. This start
 - Shared policy evaluator for permission checks across modules
 - Dual storage boot modes: in-memory seed mode and Postgres-backed persistence
 - Real Discord OAuth authorization URL generation and callback exchange flow
+- Cookie-backed platform sessions shared across the whole site
 - Discord OAuth-ready config surface with startup validation
 - Postgres schema bootstrap, seed, reset, and migration scripts for local testing
 - SQL-based schema migrations tracked in `schema_migrations`
-- Staff web dashboard at `/staff` for pending-member review, member search, and audit visibility
-- Built-in end-to-end test coverage for login, access approvals, Discord sync, whitelist logic, FiveM event idempotency, and staff dashboard serving
+- Shared login page at `/login`, authenticated landing page at `/dashboard`, and a protected staff dashboard at `/staff`
+- Built-in end-to-end test coverage for login, session auth, access approvals, Discord sync, whitelist logic, FiveM event idempotency, and staff dashboard serving
 
 ## Install
 
@@ -72,9 +73,10 @@ DISCORD_OAUTH_SCOPES=identify guilds guilds.members.read
 
 Then start the app and visit:
 
-- `GET /staff`
-- `GET /api/auth/discord/authorize`
-- complete the Discord flow against the configured callback `GET /api/auth/discord/callback`
+- `GET /`
+- `GET /login`
+- successful login or OAuth returns to the requested page, usually `GET /dashboard`
+- unauthenticated users trying `GET /dashboard` or `GET /staff` are redirected to `GET /login`
 
 Server default:
 
@@ -96,8 +98,14 @@ Server default:
 
 ## Useful endpoints
 
-- `GET /health`
+- `GET /`
+- `GET /login`
+- `GET /dashboard`
 - `GET /staff`
+- `GET /api/auth/session`
+- `DELETE /api/auth/session`
+- `GET /api/staff/dashboard`
+- `POST /api/staff/members/:userId/status`
 - `GET /api/auth/discord/authorize`
 - `GET /api/auth/discord/callback`
 - `POST /api/auth/discord/login`
@@ -129,7 +137,6 @@ Pending member approval:
 
 ```json
 {
-  "actorUserId": 1,
   "status": "active",
   "notes": "Approved by command staff"
 }
@@ -153,8 +160,8 @@ FiveM event ingestion:
 
 ## Next build targets
 
-- Add a frontend login button and session handoff flow for Discord OAuth
-- Add follow-up migrations instead of relying on a single baseline schema file
+- Replace the direct login fallback with a richer shared sign-in handoff
+- Add follow-up migrations instead of relying on a small migration set
 - Add background jobs and outbound sync for Discord and FiveM operations
-- Expand the staff portal into a fuller operations dashboard
+- Expand the shared dashboard into fuller member and operator views
 - Expand shared entities for CAD, MDT, and dispatch modules
